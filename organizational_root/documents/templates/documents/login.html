@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Login | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-panel panel">
+            <a class="brand" href="{% url 'home' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Secure Document Access</span>
+                </span>
+            </a>
+
+            <h2>Login</h2>
+
+            <form method="POST" class="auth-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    {{ form.non_field_errors }}
+                {% endif %}
+                <p>
+                    {{ form.account_type.label_tag }}
+                    {{ form.account_type }}
+                    {% if form.account_type.errors %}
+                        {{ form.account_type.errors }}
+                    {% endif %}
+                </p>
+                <p>
+                    {{ form.username.label_tag }}
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        {{ form.username.errors }}
+                    {% endif %}
+                </p>
+                <p>
+                    {{ form.password.label_tag }}
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        {{ form.password.errors }}
+                    {% endif %}
+                </p>
+                <div class="auth-actions">
+                    <button type="submit">Log In</button>
+                    <a class="btn" href="{% url 'register' %}">Register Account</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

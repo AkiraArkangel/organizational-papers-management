@@ -1,0 +1,22 @@
+<section class="table-panel panel organizations-panel">
+    <div class="file-section-header organizations-heading">
+        <h1>Organizations List</h1>
+        <span class="section-meta">{{ organizations|length }} registered</span>
+    </div>
+
+    {% if organizations %}
+        <div class="organization-list">
+            {% for organization in organizations %}
+                <a class="organization-card" href="{% url 'admin_organization_overview' organization.id %}">
+                    <span>
+                        <strong>{{ organization.organization_name }}</strong>
+                        <span>{{ organization.user.username }}</span>
+                    </span>
+                    <span class="status registered">View Overview</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">No organizations registered yet.</div>
+    {% endif %}
+</section>

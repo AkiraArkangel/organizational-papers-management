@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="home-panel panel">
+        <a class="brand" href="{% url 'home' %}">
+            <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+            <span>
+                <span class="brand-name">OrgSys</span>
+                <span class="brand-subtitle">Organizational Papers Management System</span>
+            </span>
+        </a>
+
+        <div class="nav-links">
+            {% if user.is_authenticated %}
+                {% if user.is_staff %}
+                    <a class="btn" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
+                {% else %}
+                    <a class="btn" href="{% url 'dashboard' %}">Organization Dashboard</a>
+                {% endif %}
+            {% else %}
+                <a class="btn" href="{% url 'login' %}">Login</a>
+                <a class="btn" href="{% url 'register' %}">Register Account</a>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

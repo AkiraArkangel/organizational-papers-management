@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Organization Dashboard | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url 'dashboard' %}">
+                {% if organization.logo %}
+                    <img class="brand-logo" src="{{ organization.logo.url }}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
+                {% else %}
+                    <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                {% endif %}
+                <span>
+                    <span class="brand-name">{{ organization.organization_name }} ({{ request.user.username }})</span>
+                    <span class="brand-subtitle">Organization Account</span>
+                </span>
+            </a>
+
+            <div class="header-actions">
+                <a href="{% url 'upload' %}" class="btn">Create Folder / Upload File</a>
+                <form method="POST" action="{% url 'delete_account' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit" class="danger-btn" onclick="return confirm('Delete this organization account and all its files?');">Delete Account</button>
+                </form>
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        {% include 'documents/_messages.html' %}
+
+        {% if organization_notification %}
+            <div class="toast-notification panel" role="status" aria-live="polite">
+                <strong>File Status Updated</strong>
+                <span>{{ organization_notification.get_status_display }}</span>
+            </div>
+        {% endif %}
+
+        {% include 'documents/_template_drawer.html' %}
+
+        <section id="file-submissions" class="tab-panel table-panel panel file-submissions-panel {% if active_dashboard_tab != 'organization-overview' %}is-active{% endif %}" data-tab-panel="file-submissions">
+            {% for group in section_groups %}
+                {% include 'documents/_folder_section.html' with dashboard_role='organization' %}
+            {% endfor %}
+        </section>
+
+        <section id="signed-copies" class="tab-panel" data-tab-panel="signed-copies">
+            {% include 'documents/_signed_copies_panel.html' with can_upload_signed_copy=True show_signed_copy_organization=False %}
+        </section>
+
+        <section id="organization-overview" class="tab-panel {% if active_dashboard_tab == 'organization-overview' %}is-active{% endif %}" data-tab-panel="organization-overview">
+            {% include 'documents/_organization_overview_panel.html' %}
+        </section>
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab {% if active_dashboard_tab != 'organization-overview' %}is-active{% endif %}" href="#file-submissions" data-tab-target="file-submissions">File Submissions</a>
+        <a class="bottom-tab" href="#signed-copies" data-tab-target="signed-copies">Signed Copies</a>
+        <a class="bottom-tab {% if active_dashboard_tab == 'organization-overview' %}is-active{% endif %}" href="#organization-overview" data-tab-target="organization-overview">Organization Overview</a>
+    </nav>
+    <script src="{% static 'js/toast-dismiss.js' %}"></script>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+</body>
+</html>

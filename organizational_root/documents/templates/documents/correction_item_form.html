@@ -1,0 +1,80 @@
+{% extends 'documents/base.html' %}
+
+{% block title %}{{ action }} Correction Item{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-section">
+        <h1>{{ action }} Correction Item</h1>
+        
+        {% if document %}
+            <p class="form-section-subtitle">Document: {{ document.title }}</p>
+        {% endif %}
+        
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                {{ form.correction_type.label_tag }}
+                {{ form.correction_type }}
+                {% if form.correction_type.help_text %}
+                    <small class="form-text text-muted">{{ form.correction_type.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.priority.label_tag }}
+                {{ form.priority }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.status.label_tag }}
+                {{ form.status }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.page_number.label_tag }}
+                {{ form.page_number }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.section.label_tag }}
+                {{ form.section }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.current_text.label_tag }}
+                {{ form.current_text }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.suggested_text.label_tag }}
+                {{ form.suggested_text }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.description.label_tag }}
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="error">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.assigned_to.label_tag }}
+                {{ form.assigned_to }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.resolution_notes.label_tag }}
+                {{ form.resolution_notes }}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{{ action }} Correction</button>
+                <a href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'adviser_dashboard' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

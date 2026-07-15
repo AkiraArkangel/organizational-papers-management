@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Admin Dashboard | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url 'admin_dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                    <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">{{ admin_rank_label }} | Admin ID: {{ request.user.username }}</span>
+                </span>
+            </a>
+
+            <div class="actions">
+                <a class="btn" href="{% url 'home' %}">Home</a>
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        {% include 'documents/_messages.html' %}
+
+        {% if latest_notification %}
+            <div class="toast-notification panel" role="status" aria-live="polite">
+                <strong>New File Submitted</strong>
+                <span>{{ latest_notification.user.username }}</span>
+            </div>
+        {% endif %}
+
+        {% include 'documents/_template_drawer.html' %}
+
+        <section id="file-submissions" class="tab-panel table-panel panel file-submissions-panel is-active" data-tab-panel="file-submissions">
+            {% for group in section_groups %}
+                {% include 'documents/_folder_section.html' with dashboard_role='admin' %}
+            {% endfor %}
+
+            {% if organizations_without_documents %}
+                <h2 class="section-heading">Registered Organizations</h2>
+                <table>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                    </tr>
+                    {% for organization in organizations_without_documents %}
+                    <tr>
+                        <td>{{ organization.organization_name }} ({{ organization.user.username }})</td>
+                        <td><span class="status registered">Registered</span></td>
+                        <td>{{ organization.created_at|date:"M d, Y h:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+
+            {% if not folders and not organizations_without_documents %}
+                <div class="empty-state">No documents submitted yet.</div>
+            {% endif %}
+
+            {% include 'documents/_signed_copies_panel.html' with can_upload_signed_copy=False show_signed_copy_organization=True %}
+
+        </section>
+
+        <section id="organizations-list" class="tab-panel" data-tab-panel="organizations-list">
+            {% include 'documents/_admin_organizations_panel.html' %}
+        </section>
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab is-active" href="#file-submissions" data-tab-target="file-submissions">File Submissions</a>
+        <a class="bottom-tab" href="#organizations-list" data-tab-target="organizations-list">Organizations List</a>
+    </nav>
+    <script src="{% static 'js/toast-dismiss.js' %}"></script>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Register | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-panel panel">
+            <a class="brand" href="{% url 'home' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Create A Managed Account</span>
+                </span>
+            </a>
+
+            <h2>Register Account</h2>
+
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <p>
+                    {{ form.account_type.label_tag }}
+                    {{ form.account_type }}
+                    {{ form.account_type.errors }}
+                </p>
+
+                <p>
+                    {{ form.account_name.label_tag }}
+                    {{ form.account_name }}
+                    {% if form.account_name.help_text %}
+                        <span class="helptext">{{ form.account_name.help_text }}</span>
+                    {% endif %}
+                    {{ form.account_name.errors }}
+                </p>
+
+                <div id="organization-fields">
+                    <p>
+                        {{ form.organization_name.label_tag }}
+                        {{ form.organization_name }}
+                        {{ form.organization_name.errors }}
+                    </p>
+                </div>
+
+                <div id="adviser-fields">
+                    <p>
+                        {{ form.adviser_organization.label_tag }}
+                        {{ form.adviser_organization }}
+                        {{ form.adviser_organization.errors }}
+                    </p>
+                </div>
+
+                <div id="admin-fields">
+                    <p>
+                        {{ form.admin_position.label_tag }}
+                        {{ form.admin_position }}
+                        {{ form.admin_position.errors }}
+                    </p>
+                </div>
+
+                <p>
+                    {{ form.password.label_tag }}
+                    {{ form.password }}
+                    {{ form.password.errors }}
+                </p>
+
+                <p>
+                    {{ form.password_confirm.label_tag }}
+                    {{ form.password_confirm }}
+                    {{ form.password_confirm.errors }}
+                </p>
+
+                <button type="submit">Register</button>
+            </form>
+
+            <a href="{% url 'login' %}">Back to login</a>
+        </section>
+    </main>
+
+    <script>
+        const accountType = document.getElementById('id_account_type');
+        const organizationFields = document.getElementById('organization-fields');
+        const adviserFields = document.getElementById('adviser-fields');
+        const adminFields = document.getElementById('admin-fields');
+        const accountNameLabel = document.querySelector('label[for="id_account_name"]');
+
+        function updateFields() {
+            const isOrganization = accountType.value === 'organization';
+            const isAdviser = accountType.value === 'adviser';
+            const isAdmin = accountType.value === 'admin';
+            organizationFields.classList.toggle('hidden', !isOrganization);
+            adviserFields.classList.toggle('hidden', !isAdviser);
+            adminFields.classList.toggle('hidden', !isAdmin);
+            if (isOrganization) {
+                accountNameLabel.textContent = 'Organization Acronym:';
+            } else if (isAdviser) {
+                accountNameLabel.textContent = 'Adviser ID:';
+            } else {
+                accountNameLabel.textContent = 'Admin ID:';
+            }
+        }
+
+        accountType.addEventListener('change', updateFields);
+        updateFields();
+    </script>
+</body>
+</html>

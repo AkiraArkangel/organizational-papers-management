@@ -1,0 +1,8 @@
+asgiref==3.11.1
+Django==6.0.4
+sqlparse==0.5.5
+tzdata==2026.2
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+whitenoise==6.6.0  # Static file serving
+gunicorn==21.2.0  # Production WSGI server
+dj-database-url==2.1.0

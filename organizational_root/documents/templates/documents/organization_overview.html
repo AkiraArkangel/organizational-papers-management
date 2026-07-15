@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Organization Overview | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url submissions_url %}">
+                {% if organization.logo %}
+                    <img class="brand-logo" src="{{ organization.logo.url }}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
+                {% else %}
+                    <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                {% endif %}
+                <span>
+                    <span class="brand-name">{{ organization.organization_name }} ({{ organization.user.username }})</span>
+                    <span class="brand-subtitle">Organization Overview</span>
+                </span>
+            </a>
+
+            <div class="header-actions">
+                <a class="btn" href="{% url submissions_url %}">File Submissions</a>
+                {% if can_edit %}
+                    <form method="POST" action="{% url 'delete_account' %}" class="action-form">
+                        {% csrf_token %}
+                        <button type="submit" class="danger-btn" onclick="return confirm('Delete this organization account and all its files?');">Delete Account</button>
+                    </form>
+                {% endif %}
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        {% include 'documents/_messages.html' %}
+
+        {% include 'documents/_organization_overview_panel.html' %}
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab" href="{% url submissions_url %}">File Submissions</a>
+        <a class="bottom-tab is-active" href="{% url 'organization_overview' %}">Organization Overview</a>
+    </nav>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+</body>
+</html>

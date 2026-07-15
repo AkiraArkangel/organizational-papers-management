@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Adviser Review | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-panel review-panel panel">
+            <a class="brand" href="{% url 'adviser_dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Adviser Account</span>
+                </span>
+            </a>
+            {% include 'documents/_messages.html' %}
+
+            <div class="review-page-heading">
+                <h2>Review Submitted Document</h2>
+                <span class="status {{ document.get_status_display|slugify }}">{{ document.get_status_display }}</span>
+            </div>
+
+            <section class="document-review-card document-summary-card">
+                <span class="document-review-kicker">Document outline</span>
+                <div class="document-meta-grid">
+                    <span>Organization</span>
+                    <strong>{{ document.organization_display_name }}</strong>
+                    <span>Section</span>
+                    <strong>{{ document.get_section_display }}</strong>
+                    <span>Status</span>
+                    <strong>{{ document.get_status_display }}</strong>
+                </div>
+            </section>
+
+            {% if document.uploaded_file %}
+                <div class="file-actions">
+                    <a class="btn" href="{% url 'adviser_view_document' document.id %}" target="_blank" rel="noopener">Open PDF</a>
+                    <a class="btn" href="{% url 'adviser_download_document' document.id %}">Download PDF as DOCX</a>
+                </div>
+            {% endif %}
+
+            <div class="review-layout review-layout-no-preview">
+                <section class="document-review-card">
+                    {% if document.uploaded_file %}
+                        <span class="document-review-kicker">Current PDF</span>
+                        <strong>{{ document.uploaded_filename }}</strong>
+                        <p>Use Open PDF to review the file in a separate tab, or download it before uploading an edited copy.</p>
+                        <div class="document-review-actions">
+                            <a class="btn" href="{% url 'adviser_view_document' document.id %}" target="_blank" rel="noopener">Open PDF</a>
+                            <a class="btn" href="{% url 'adviser_download_document' document.id %}">Download PDF as DOCX</a>
+                        </div>
+                    {% else %}
+                        <p>No PDF file is available for this document.</p>
+                    {% endif %}
+                </section>
+
+                <form method="POST" enctype="multipart/form-data" class="correction-form">
+                    {% csrf_token %}
+                    <div class="form-section-heading">
+                        <h3>Adviser Review</h3>
+                        <p>Review the document and mark as corrected if needed.</p>
+                    </div>
+                    <p>
+                        {{ form.review_file.label_tag }}
+                        {{ form.review_file }}
+                        {% if form.review_file.help_text %}
+                            <span class="helptext">{{ form.review_file.help_text }}</span>
+                        {% endif %}
+                        {% if form.review_file.errors %}
+                            {{ form.review_file.errors }}
+                        {% endif %}
+                    </p>
+                    <p>
+                        {{ form.correction_notes.label_tag }}
+                        {{ form.correction_notes }}
+                        {% if form.correction_notes.help_text %}
+                            <span class="helptext">{{ form.correction_notes.help_text }}</span>
+                        {% endif %}
+                        {% if form.correction_notes.errors %}
+                            {{ form.correction_notes.errors }}
+                        {% endif %}
+                    </p>
+                    <div class="live-checklist-preview" data-checklist-preview>
+                        <strong>Checklist Preview</strong>
+                        <div class="muted-text">Press Enter after an item to see it as a checklist entry.</div>
+                        <div class="live-checklist-items"></div>
+                    </div>
+                    <div class="form-section-heading ready-section">
+                        <h3>Adviser Approval</h3>
+                        <p>Approve the file before forwarding it to admin accounts.</p>
+                    </div>
+                    <label class="checklist-item ready-checkbox">
+                        {{ form.approve_by_adviser }}
+                        <span>{{ form.approve_by_adviser.label }}</span>
+                    </label>
+                    {% if form.approve_by_adviser.help_text %}
+                        <span class="helptext">{{ form.approve_by_adviser.help_text }}</span>
+                    {% endif %}
+                    <button type="submit">Save Review</button>
+                    <a class="btn" href="{% url 'adviser_dashboard' %}">Cancel</a>
+                </form>
+            </div>
+        </section>
+    </main>
+    <script src="{% static 'js/checklist-preview.js' %}"></script>
+</body>
+</html>

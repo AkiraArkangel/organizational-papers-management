@@ -1,0 +1,47 @@
+<section class="panel signed-copies-panel">
+    <div class="file-section-header">
+        <h2 class="section-heading">Signed Scanned Copies</h2>
+    </div>
+
+    {% if can_upload_signed_copy %}
+        <form method="POST" enctype="multipart/form-data" action="{% url 'upload_signed_copy' %}" class="signed-copy-form">
+            {% csrf_token %}
+            {{ signed_copy_form.as_p }}
+            <button type="submit">Upload Signed Copy</button>
+        </form>
+    {% endif %}
+
+    {% if signed_copies %}
+        <table>
+            <tr>
+                {% if show_signed_copy_organization %}<th>Organization</th>{% endif %}
+                <th>Reference</th>
+                <th>Related Folder</th>
+                <th>Signed Copy</th>
+                <th>Uploaded</th>
+                <th>Forwarded To</th>
+            </tr>
+            {% for copy in signed_copies %}
+                <tr>
+                    {% if show_signed_copy_organization %}<td>{{ copy.organization_display_name }}</td>{% endif %}
+                    <td>{{ copy.title }}</td>
+                    <td>{% if copy.folder %}{{ copy.folder.name }}{% else %}No related folder{% endif %}</td>
+                    <td><a class="file-link" href="{{ copy.signed_file.url }}" download>{{ copy.filename }}</a></td>
+                    <td>{{ copy.uploaded_at|date:"M d, Y h:i A" }}</td>
+                    <td>
+                        <span class="status-stack">
+                            {% if copy.forwarded_to_adviser_at %}<span class="status forwarded-by">Adviser</span>{% endif %}
+                            {% if copy.forwarded_to_coi_at %}<span class="status approved-by">COI</span>{% endif %}
+                            {% if copy.forwarded_to_dsas_at %}<span class="status ready-for-printing">DSAS</span>{% endif %}
+                            {% if not copy.forwarded_to_adviser_at and not copy.forwarded_to_coi_at and not copy.forwarded_to_dsas_at %}
+                                <span class="muted-text">Reference only</span>
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <div class="empty-state">No signed scanned copies available.</div>
+    {% endif %}
+</section>

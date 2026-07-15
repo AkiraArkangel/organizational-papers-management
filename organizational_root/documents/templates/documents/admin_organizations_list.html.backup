@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Organizations List | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url 'admin_dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Organizations List</span>
+                </span>
+            </a>
+
+            <div class="actions">
+                <a class="btn" href="{% url 'home' %}">Home</a>
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        <section class="table-panel panel organizations-panel">
+            <div class="file-section-header organizations-heading">
+                <h1>Organizations List</h1>
+                <span class="section-meta">{{ organizations|length }} registered</span>
+            </div>
+
+            {% if organizations %}
+                <div class="organization-list">
+                    {% for organization in organizations %}
+                        <a class="organization-card" href="{% url 'admin_organization_overview' organization.id %}">
+                            <span>
+                                <strong>{{ organization.organization_name }}</strong>
+                                <span>{{ organization.user.username }}</span>
+                            </span>
+                            <span class="status registered">View Overview</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">No organizations registered yet.</div>
+            {% endif %}
+        </section>
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab" href="{% url 'admin_dashboard' %}">File Submissions</a>
+        <a class="bottom-tab is-active" href="{% url 'admin_organizations_list' %}">Organizations List</a>
+    </nav>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+</body>
+</html>

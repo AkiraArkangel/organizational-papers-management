@@ -1,0 +1,164 @@
+<section class="overview-layout">
+    <section class="overview-panel panel organization-profile-panel">
+        <div class="overview-heading">
+            <div class="organization-identity">
+                <div class="organization-logo-frame {% if not organization.logo %}is-empty{% endif %}">
+                    {% if organization.logo %}
+                        <img src="{{ organization.logo.url }}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
+                    {% else %}
+                        <span>No Logo</span>
+                    {% endif %}
+                    {% if can_edit %}
+                        <form method="POST" action="{% url 'update_organization_logo' %}" enctype="multipart/form-data" class="photo-update-form">
+                            {% csrf_token %}
+                            <label class="photo-upload-trigger">
+                                <span>{% if organization.logo %}Replace{% else %}Add Logo{% endif %}</span>
+                                <input type="file" name="logo" accept="image/*" required {% if organization.logo %}onchange="this.form.submit();"{% endif %}>
+                            </label>
+                            {% if not organization.logo %}
+                                <button type="submit" class="photo-save-btn">Save</button>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="section-meta">Organization Profile</span>
+                    <h1>{{ organization.organization_name }} ({{ organization.user.username }})</h1>
+                    {% if can_edit %}
+                        <form method="POST" action="{% url 'rename_organization' %}" class="rename-organization-form">
+                            {% csrf_token %}
+                            {{ name_form.organization_name }}
+                            <button type="submit" class="small-btn">Rename</button>
+                            {{ name_form.organization_name.errors }}
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            <span class="overview-count">{{ officers|length }} officer{{ officers|length|pluralize }}</span>
+        </div>
+
+        <div class="officer-grid">
+            {% for officer in officers %}
+                <div class="officer-card">
+                    <div class="officer-photo-section {% if not officer.photo %}is-empty{% endif %}">
+                        {% if officer.photo %}
+                            <div class="photo-link" data-photo-url="{{ officer.photo.url }}?v={{ officer.photo_updated_at|date:'U' }}">
+                                <img src="{{ officer.photo.url }}?v={{ officer.photo_updated_at|date:'U' }}" alt="{{ officer.name }}">
+                            </div>
+                        {% else %}
+                            <div class="photo-placeholder">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                        {% endif %}
+                        {% if can_edit %}
+                            <form method="POST" action="{% url 'update_organization_officer_photo' officer.id %}" enctype="multipart/form-data" class="photo-upload-form">
+                                {% csrf_token %}
+                                <label class="upload-trigger">
+                                    <span>{% if officer.photo %}Replace{% else %}Add Photo{% endif %}</span>
+                                    <input type="file" name="photo" accept="image/*" required {% if officer.photo %}onchange="this.form.submit();"{% endif %}>
+                                </label>
+                                {% if not officer.photo %}
+                                    <button type="submit" class="save-btn">Save</button>
+                                {% endif %}
+                            </form>
+                        {% endif %}
+                    </div>
+                    <div class="officer-details">
+                        {% if can_edit %}
+                            <form method="POST" action="{% url 'update_organization_officer' officer.id %}" class="officer-edit-form">
+                                {% csrf_token %}
+                                <div class="officer-fields">
+                                    <div class="field-group">
+                                        <label>Position</label>
+                                        <input type="text" name="position" value="{{ officer.position }}" maxlength="120" required>
+                                    </div>
+                                    <div class="field-group">
+                                        <label>Name</label>
+                                        <input type="text" name="name" value="{{ officer.name }}" maxlength="180" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="action-btn small">Save</button>
+                            </form>
+                        {% else %}
+                            <div class="officer-display">
+                                <div class="field-display">
+                                    <span class="field-label">Position</span>
+                                    <span class="field-value">{{ officer.position }}</span>
+                                </div>
+                                <div class="field-display">
+                                    <span class="field-label">Name</span>
+                                    <span class="field-value">{{ officer.name }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if can_edit %}
+                        <div class="officer-actions">
+                            <form method="POST" action="{% url 'move_organization_officer' officer.id 'up' %}" class="action-form">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn icon-btn" {% if forloop.first %}disabled{% endif %} title="Move Up">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="18 15 12 9 6 15"></polyline>
+                                    </svg>
+                                </button>
+                            </form>
+                            <form method="POST" action="{% url 'move_organization_officer' officer.id 'down' %}" class="action-form">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn icon-btn" {% if forloop.last %}disabled{% endif %} title="Move Down">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                            </form>
+                            <form method="POST" action="{% url 'delete_organization_officer' officer.id %}" class="action-form">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn danger icon-btn" title="Remove" onclick="return confirm('Remove this officer profile?');">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h3>No officer profiles added yet.</h3>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if can_edit %}
+        <aside class="overview-panel panel officer-editor-panel">
+            <div class="panel-header">
+                <h3>Add Position</h3>
+                <p>Add the officer name now. The photo can be uploaded later.</p>
+            </div>
+            <form method="POST" action="{% url 'add_organization_officer' %}" enctype="multipart/form-data" class="officer-form">
+                {% csrf_token %}
+                <div class="form-fields">
+                    <div class="field-group">
+                        <label>{{ officer_form.position.label }}</label>
+                        {{ officer_form.position }}
+                    </div>
+                    <div class="field-group">
+                        <label>{{ officer_form.name.label }}</label>
+                        {{ officer_form.name }}
+                    </div>
+                </div>
+                <button type="submit" class="action-btn primary">Add Position</button>
+            </form>
+        </aside>
+    {% endif %}
+</section>

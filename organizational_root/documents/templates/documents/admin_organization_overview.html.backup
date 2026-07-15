@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>{{ organization.organization_name }} | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-review-polish">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url 'admin_organizations_list' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Read-only Organization Overview</span>
+                </span>
+            </a>
+
+            <div class="actions">
+                <a class="btn" href="{% url 'admin_organizations_list' %}">Organizations List</a>
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        {% include 'documents/_organization_overview_panel.html' %}
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab" href="{% url 'admin_dashboard' %}">File Submissions</a>
+        <a class="bottom-tab is-active" href="{% url 'admin_organizations_list' %}">Organizations List</a>
+    </nav>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+</body>
+</html>

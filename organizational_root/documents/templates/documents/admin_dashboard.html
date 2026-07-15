@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Admin Dashboard | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260706-calendar-hover">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url 'admin_dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                    <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">{{ admin_rank_label }} | Admin ID: {{ request.user.username }}</span>
+                </span>
+            </a>
+
+            <div class="header-actions">
+                <button id="notification-center-toggle" class="icon-btn" aria-label="Open notification center" title="Notification Center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span id="notification-badge" class="notification-badge" style="display: none;">0</span>
+                </button>
+                <button id="dark-mode-toggle" class="icon-btn" aria-label="Toggle dark mode" title="Toggle Dark Mode">
+                    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                <a class="btn" href="{% url 'home' %}">Home</a>
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        {% include 'documents/_messages.html' %}
+        {% csrf_token %}
+
+        <script>
+            window.notifications = {{ notifications_data|safe }};
+        </script>
+
+        <!-- Notification Center Panel -->
+        <div class="notification-center" id="notification-center" style="display: none;">
+            <div class="notification-center-header">
+                <h3>Notifications</h3>
+                <button id="mark-all-read" class="mark-all-read-btn">Mark all as read</button>
+                <button id="clear-all-notifications" class="clear-all-btn">Clear all</button>
+            </div>
+            <div class="notification-center-body">
+                <div id="notification-list" class="notification-list">
+                    <!-- Notifications will be loaded here -->
+                </div>
+                <div class="notification-center-empty" id="notification-empty" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <p>No notifications</p>
+                </div>
+            </div>
+        </div>
+
+        {% if latest_notification %}
+            <a href="#file-submissions" class="toast-notification panel clickable-notification" role="status" aria-live="polite" data-notification-id="{{ latest_notification.id }}" data-target-tab="file-submissions">
+                <strong>New File Submitted - Go to File Submissions</strong>
+                <span>{{ latest_notification.user.username }}</span>
+            </a>
+        {% endif %}
+
+        <!-- Correction Items Section -->
+        {% if correction_items %}
+            <div class="correction-items-panel panel">
+                <div class="correction-items-header">
+                    <h2>Correction Items</h2>
+                    <span class="correction-items-count">{{ correction_items|length }}</span>
+                </div>
+                <div class="correction-items-list">
+                    {% for correction in correction_items %}
+                        <div class="correction-item correction-item-{{ correction.priority|lower }} correction-item-{{ correction.status|lower }}">
+                            <div class="correction-item-header">
+                                <div class="correction-item-type">{{ correction.get_correction_type_display }}</div>
+                                <div class="correction-item-priority">{{ correction.get_priority_display }}</div>
+                                <div class="correction-item-status">{{ correction.get_status_display }}</div>
+                            </div>
+                            <div class="correction-item-content">
+                                <div class="correction-item-document">{{ correction.document.title }}</div>
+                                {% if correction.page_number %}
+                                    <div class="correction-item-location">Page {{ correction.page_number }}{% if correction.section %} - {{ correction.section }}{% endif %}</div>
+                                {% endif %}
+                                <div class="correction-item-description">{{ correction.description }}</div>
+                                {% if correction.current_text and correction.suggested_text %}
+                                    <div class="correction-item-text-change">
+                                        <div class="correction-item-current">Current: {{ correction.current_text }}</div>
+                                        <div class="correction-item-suggested">Suggested: {{ correction.suggested_text }}</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="correction-item-footer">
+                                <div class="correction-item-meta">
+                                    <span>Created by {{ correction.created_by.username }}</span>
+                                    <span>{{ correction.created_at|date:"M d, Y H:i" }}</span>
+                                </div>
+                                <div class="correction-item-actions">
+                                    {% if correction.status == 'PENDING' and correction.assigned_to == user %}
+                                        <form method="POST" action="{% url 'resolve_correction_item' correction.id %}" class="correction-action-form">
+                                            {% csrf_token %}
+                                            <input type="text" name="resolution_notes" placeholder="Resolution notes" class="correction-resolution-input">
+                                            <button type="submit" class="btn btn-sm btn-success">Resolve</button>
+                                        </form>
+                                    {% endif %}
+                                    <a href="{% url 'edit_correction_item' correction.id %}" class="btn btn-sm btn-secondary">Edit</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% include 'documents/_template_drawer.html' %}
+
+        <section id="file-submissions" class="tab-panel table-panel panel file-submissions-panel is-active" data-tab-panel="file-submissions">
+            <!-- Status Summary Card -->
+            <div class="status-summary-card panel">
+                <div class="status-summary-header">
+                    <h2>File Status Summary</h2>
+                    <span class="status-summary-total">{{ status_stats.total }} Total Files</span>
+                </div>
+                <div class="status-summary-grid">
+                    {% if admin_rank == 'RANK_2' %}
+                        <!-- COI (RANK_2) specific status summary -->
+                        <div class="status-summary-item">
+                            <span class="status-summary-count submitted">{{ status_stats.pending_review }}</span>
+                            <span class="status-summary-label">Pending Review</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count coi-approved">{{ status_stats.approved_by_coi }}</span>
+                            <span class="status-summary-label">Approved by COI</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count corrected">{{ status_stats.corrected }}</span>
+                            <span class="status-summary-label">Corrected</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count ready">{{ status_stats.forwarded_to_dsas }}</span>
+                            <span class="status-summary-label">Forwarded to DSAS</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count ready">{{ status_stats.ready_for_printing }}</span>
+                            <span class="status-summary-label">Ready for Printing</span>
+                        </div>
+                    {% else %}
+                        <!-- DSAS (RANK_1) specific status summary -->
+                        <div class="status-summary-item">
+                            <span class="status-summary-count submitted">{{ status_stats.pending_review }}</span>
+                            <span class="status-summary-label">Pending Review</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count approved">{{ status_stats.approved_by_dsas }}</span>
+                            <span class="status-summary-label">Approved by DSAS</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count corrected">{{ status_stats.corrected }}</span>
+                            <span class="status-summary-label">Corrected</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count coi-approved">{{ status_stats.forwarded_from_coi }}</span>
+                            <span class="status-summary-label">Forwarded from COI</span>
+                        </div>
+                        <div class="status-summary-item">
+                            <span class="status-summary-count ready">{{ status_stats.ready_for_printing }}</span>
+                            <span class="status-summary-label">Ready for Printing</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% for group in section_groups %}
+                {% include 'documents/_folder_section.html' with dashboard_role='admin' %}
+            {% endfor %}
+
+            {% if organizations_without_documents %}
+                <h2 class="section-heading">Registered Organizations</h2>
+                <table>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                    </tr>
+                    {% for organization in organizations_without_documents %}
+                    <tr>
+                        <td>{{ organization.organization_name }} ({{ organization.user.username }})</td>
+                        <td><span class="status registered">Registered</span></td>
+                        <td>{{ organization.created_at|date:"M d, Y h:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+
+            {% if not folders and not organizations_without_documents %}
+                <div class="empty-state">No documents submitted yet.</div>
+            {% endif %}
+
+            {% include 'documents/_signed_copies_panel.html' with can_upload_signed_copy=False show_signed_copy_organization=True %}
+
+        </section>
+
+        <section id="organizations-list" class="tab-panel" data-tab-panel="organizations-list">
+            {% include 'documents/_admin_organizations_panel.html' %}
+        </section>
+
+        <section id="calendar" class="tab-panel" data-tab-panel="calendar">
+            <div class="calendar-view" id="calendar-view" data-events='{{ calendar_events|safe }}'>
+                <div class="calendar-header">
+                    <h2 class="calendar-title" id="calendar-title">Calendar</h2>
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" id="prev-month">← Previous</button>
+                        <button class="calendar-nav-btn" id="today-btn">Today</button>
+                        <button class="calendar-nav-btn" id="next-month">Next →</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                </div>
+                <div class="calendar-legend">
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color submitted"></div>
+                        <span>Submitted</span>
+                    </div>
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color approved"></div>
+                        <span>Approved</span>
+                    </div>
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color corrected"></div>
+                        <span>Corrected</span>
+                    </div>
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color ready"></div>
+                        <span>Ready for Printing</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab is-active" href="#file-submissions" data-tab-target="file-submissions">File Submissions</a>
+        <a class="bottom-tab" href="#organizations-list" data-tab-target="organizations-list">Organizations List</a>
+        <a class="bottom-tab" href="#calendar" data-tab-target="calendar">Calendar</a>
+    </nav>
+    <script src="{% static 'js/toast-dismiss.js' %}?v=20260706-notification-dismiss"></script>
+    <script src="{% static 'js/photo-lightbox.js' %}?v=20260706-lightbox"></script>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+    <script src="{% static 'js/dark-mode.js' %}?v=20260706-dark-mode"></script>
+    <script src="{% static 'js/notification-center.js' %}?v=20260706-notification-center"></script>
+    <script src="{% static 'js/file-preview.js' %}?v=20260706-file-preview"></script>
+    <script src="{% static 'js/calendar-view.js' %}?v=20260706-calendar"></script>
+    <script src="{% static 'js/undo-functionality.js' %}?v=20260706-undo"></script>
+    <script src="{% static 'js/notification-sound.js' %}?v=20260706-notification-sound"></script>
+    <script src="{% static 'js/error-handling.js' %}?v=20260706-error-handling"></script>
+    <script src="{% static 'js/auto-save.js' %}?v=20260706-auto-save"></script>
+</body>
+</html>

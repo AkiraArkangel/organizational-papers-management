@@ -1,0 +1,209 @@
+<section class="file-section">
+    <div class="file-section-header">
+        <div>
+            <h2 class="section-heading">{{ group.section_label }}</h2>
+            {% if group.note %}
+                <p class="section-note">{{ group.note }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if dashboard_role == 'admin' %}
+        <div class="section-template-slot">
+            <div class="template-format-card">
+                <span class="template-format-kicker">File Formats / Templates</span>
+                {% if group.templates %}
+                    <div class="template-file-list">
+                        {% for template in group.templates %}
+                            <div class="template-file-wrap">
+                                <a class="file-link template-format-link" href="{{ template.template_file.url }}" download>{{ template.filename }}</a>
+                                <form method="POST" enctype="multipart/form-data" class="template-change-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="section" value="{{ group.section }}">
+                                    <input type="hidden" name="template_id" value="{{ template.id }}">
+                                    <label class="template-change-btn">
+                                        <span>Change</span>
+                                        <input type="file" name="template_file" accept="application/pdf" required onchange="this.form.submit();">
+                                    </label>
+                                    <button type="submit" name="template_upload" value="1" class="hidden-submit">Change</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <span class="template-format-empty">No file format or sample uploaded yet.</span>
+                {% endif %}
+            </div>
+            <form method="POST" enctype="multipart/form-data" class="template-empty-form">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="{{ group.section }}">
+                <input type="file" name="template_file" accept="application/pdf" multiple required>
+                <button type="submit" name="template_upload" value="1">Upload Template/Sample</button>
+            </form>
+        </div>
+    {% endif %}
+
+    {% if group.folders %}
+        <div class="folder-list">
+            {% for folder in group.folders %}
+                <details class="submission-folder">
+                    <summary class="folder-summary">
+                        <span class="folder-title">&#9656; {{ folder.name }}</span>
+                        <span class="folder-organization">{{ folder.organization_display_name }}</span>
+                        <span class="status-stack">
+                            {% for label in folder.status_labels %}
+                                <span class="status {{ label|slugify }}">{{ label }}</span>
+                            {% endfor %}
+                        </span>
+                    </summary>
+
+                    <div class="folder-actions">
+                        {% if dashboard_role == 'organization' %}
+                            <a class="btn small-btn" href="{% url 'upload' %}?folder={{ folder.id }}">Add File</a>
+                            <form method="POST" action="{% url 'organization_forward_folder' folder.id %}" class="folder-forward-form">
+                                {% csrf_token %}
+                                <label>
+                                    <span>Forward folder to</span>
+                                    <select name="forward_target" required>
+                                        <option value="">Choose destination</option>
+                                        <option value="adviser">Adviser review</option>
+                                        <option value="admin">Admin / COI</option>
+                                    </select>
+                                </label>
+                                <button type="submit" class="success-btn small-btn">Forward Folder</button>
+                            </form>
+                            <span class="forwarding-note">Use Admin / COI after uploading revised files when you want the folder routed without waiting for adviser forwarding.</span>
+                        {% elif dashboard_role == 'adviser' %}
+                            {% if folder.is_forwardable_to_admin %}
+                                <form method="POST" action="{% url 'adviser_forward_folder' folder.id %}" class="action-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="success-btn small-btn">Forward Folder to Admin</button>
+                                </form>
+                            {% elif folder.forwarded_to_admin_at %}
+                                <span class="muted-text">Folder forwarded</span>
+                            {% endif %}
+                        {% elif dashboard_role == 'admin' %}
+                            {% if admin_rank == 'RANK_2' and folder.is_forwardable_to_rank1 %}
+                                <form method="POST" action="{% url 'rank2_forward_folder' folder.id %}" class="action-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="success-btn small-btn">Forward Folder to {{ rank1_admin_id }}</button>
+                                </form>
+                            {% elif folder.forwarded_to_rank1_at %}
+                                <span class="muted-text">Folder forwarded to {{ rank1_admin_id }}</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <table>
+                        <tr>
+                            {% if dashboard_role == 'admin' %}<th>Organization</th>{% endif %}
+                            <th>Status</th>
+                            <th>Corrections</th>
+                            <th class="current-file-column">Current File</th>
+                            <th>Submitted / Resubmitted</th>
+                            <th>{% if dashboard_role == 'adviser' %}Adviser Action{% elif dashboard_role == 'admin' %}Admin Action{% else %}Action{% endif %}</th>
+                        </tr>
+
+                        {% for doc in folder.documents.all %}
+                            <tr>
+                                {% if dashboard_role == 'admin' %}<td>{{ doc.organization_display_name }}</td>{% endif %}
+                                <td class="current-file-cell">
+                                    <span class="status-stack">
+                                        {% if dashboard_role == 'adviser' %}
+                                            {% for label in doc.adviser_status_labels %}
+                                                <span class="status {{ label|slugify }}">{{ label }}</span>
+                                            {% endfor %}
+                                        {% elif dashboard_role == 'admin' %}
+                                            {% if admin_rank == 'RANK_2' %}
+                                                {% for label in doc.rank2_status_labels %}
+                                                    <span class="status {{ label|slugify }}">{{ label }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for label in doc.rank1_status_labels %}
+                                                    <span class="status {{ label|slugify }}">{{ label }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% for label in doc.status_labels %}
+                                                <span class="status {{ label|slugify }}">{{ label }}</span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if dashboard_role == 'admin' and admin_rank != 'RANK_2' and doc.forwarded_to_rank1_at and doc.status != 'CORRECTED' %}
+                                        <span class="reviewed-forwarding-flash">reviewed before forwarding</span>
+                                    {% elif dashboard_role == 'admin' and admin_rank != 'RANK_2' and doc.correction_added_by_rank2 %}
+                                        None listed
+                                    {% else %}
+                                        {% with checklist_items=doc.correction_checklist_items %}
+                                            {% if dashboard_role == 'organization' and checklist_items and doc.status == 'RESUBMITTED' %}
+                                            <form method="POST" action="{% url 'update_correction_checklist' doc.id %}" class="checklist-form">
+                                                {% csrf_token %}
+                                                <div class="checklist-heading">
+                                                    <strong>Review checklist</strong>
+                                                    <span>Check each item after uploading the revised file.</span>
+                                                </div>
+                                                {% for item in checklist_items %}
+                                                    <label class="checklist-item checklist-choice">
+                                                        <input type="checkbox" name="completed_items" value="{{ item.key }}" {% if item.checked %}checked{% endif %}>
+                                                        <span>{{ item.text }}</span>
+                                                    </label>
+                                                {% endfor %}
+                                                {% if doc.correction_checklist_complete %}
+                                                    <span class="status ready-for-printing">Checklist Complete</span>
+                                                {% else %}
+                                                    <button type="submit" class="small-btn">Save Checklist Progress</button>
+                                                {% endif %}
+                                            </form>
+                                        {% elif checklist_items %}
+                                            <ul class="admin-checklist-summary">
+                                                {% for item in checklist_items %}
+                                                    <li>{{ item.text }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                            {% else %}
+                                                None listed
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if doc.uploaded_file %}
+                                        {% if dashboard_role == 'organization' %}
+                                            <a class="file-link" href="{{ doc.current_file_url }}" download>{{ doc.current_filename }}</a>
+                                        {% elif dashboard_role == 'adviser' %}
+                                            <a class="file-link preview-link" href="{% url 'adviser_edit_document' doc.id %}" target="_blank" rel="noopener">{{ doc.uploaded_filename }}</a>
+                                        {% else %}
+                                            <a class="file-link preview-link" href="{% url 'admin_edit_document' doc.id %}" target="_blank" rel="noopener">{{ doc.uploaded_filename }}</a>
+                                        {% endif %}
+                                    {% else %}
+                                        Not available
+                                    {% endif %}
+                                </td>
+                                <td>{{ doc.uploaded_at|date:"M d, Y h:i A" }}</td>
+                                <td>
+                                    <div class="stacked-actions">
+                                        {% if dashboard_role == 'organization' %}
+                                            <a class="btn" href="{% url 'upload' %}?document={{ doc.id }}">Upload Revision</a>
+                                            <form method="POST" action="{% url 'delete_document' doc.id %}" class="action-form">
+                                                {% csrf_token %}
+                                                <button type="submit" class="danger-btn" onclick="return confirm('Cancel and delete this submitted file?');">Cancel/Delete</button>
+                                            </form>
+                                        {% elif dashboard_role == 'adviser' %}
+                                            <a class="btn" href="{% url 'adviser_edit_document' doc.id %}">Review</a>
+                                        {% else %}
+                                            <a class="btn" href="{% url 'admin_edit_document' doc.id %}">Edit</a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </details>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">No folder submitted in this section yet.</div>
+    {% endif %}
+</section>

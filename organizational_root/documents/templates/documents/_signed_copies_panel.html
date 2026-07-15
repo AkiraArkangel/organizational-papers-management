@@ -1,0 +1,121 @@
+<section class="panel signed-copies-panel">
+    <div class="file-section-header">
+        <h2 class="section-heading">Signed Scanned Copies</h2>
+    </div>
+
+    {% if can_upload_signed_copy %}
+        <form method="POST" enctype="multipart/form-data" action="{% url 'upload_signed_copy' %}" class="signed-copy-upload-form">
+            {% csrf_token %}
+            <div class="upload-section">
+                <div class="upload-header">
+                    <h3>Upload New Signed Copy</h3>
+                </div>
+                <div class="upload-content">
+                    <div class="upload-row">
+                        <div class="upload-field">
+                            <label>{{ signed_copy_form.title.label }}</label>
+                            {{ signed_copy_form.title }}
+                        </div>
+                        <div class="upload-field">
+                            <label>{{ signed_copy_form.folder.label }}</label>
+                            {{ signed_copy_form.folder }}
+                        </div>
+                    </div>
+                    <div class="upload-row">
+                        <div class="upload-field full-width">
+                            <label>{{ signed_copy_form.signed_file.label }}</label>
+                            {{ signed_copy_form.signed_file }}
+                        </div>
+                    </div>
+                    <div class="upload-row">
+                        <div class="upload-field full-width">
+                            <label class="field-label">Forward to:</label>
+                            <div class="forward-options">
+                                <label class="forward-option">
+                                    {{ signed_copy_form.forward_to_adviser }}
+                                    <span>Adviser</span>
+                                </label>
+                                <label class="forward-option">
+                                    {{ signed_copy_form.forward_to_coi }}
+                                    <span>COI</span>
+                                </label>
+                                <label class="forward-option">
+                                    {{ signed_copy_form.forward_to_dsas }}
+                                    <span>DSAS</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn">Upload Signed Copy</button>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+
+    {% if signed_copies %}
+        <div class="signed-copies-list">
+            {% for copy in signed_copies %}
+                <div class="signed-copy-item">
+                    <div class="item-main">
+                        <div class="item-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-title">
+                                <h4>{{ copy.title }}</h4>
+                                {% if show_signed_copy_organization %}
+                                    <span class="item-org">{{ copy.organization_display_name }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="item-meta">
+                                <span class="meta-item">
+                                    <span class="meta-label">Folder:</span>
+                                    <span class="meta-value">{% if copy.folder %}{{ copy.folder.name }}{% else %}No related folder{% endif %}</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Uploaded:</span>
+                                    <span class="meta-value">{{ copy.uploaded_at|date:"M d, Y h:i A" }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <div class="item-status">
+                            {% if copy.forwarded_to_adviser_at %}<span class="status-pill adviser">Adviser</span>{% endif %}
+                            {% if copy.forwarded_to_coi_at %}<span class="status-pill coi">COI</span>{% endif %}
+                            {% if copy.forwarded_to_dsas_at %}<span class="status-pill dsas">DSAS</span>{% endif %}
+                            {% if not copy.forwarded_to_adviser_at and not copy.forwarded_to_coi_at and not copy.forwarded_to_dsas_at %}
+                                <span class="status-pill reference">Reference</span>
+                            {% endif %}
+                        </div>
+                        <a class="download-link" href="{{ copy.signed_file.url }}" download>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Download</span>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+            </div>
+            <h3>No signed scanned copies</h3>
+            <p>Upload your signed documents to get started</p>
+        </div>
+    {% endif %}
+</section>

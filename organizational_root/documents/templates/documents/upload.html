@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Upload Document | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260706-drag-drop">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-panel panel">
+            <a class="brand" href="{% url 'dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Submit organization paper in a folder</span>
+                </span>
+            </a>
+
+            <h2>
+                {% if resubmit_document %}
+                    Upload Revised File
+                {% elif existing_folder %}
+                    Add File to {{ existing_folder.name }}
+                {% else %}
+                    Create Folder / Upload File
+                {% endif %}
+            </h2>
+
+            {% if not existing_folder and not resubmit_document %}
+                <p class="form-note">Name the folder the Activity Name or Report that you will be submitting.</p>
+            {% endif %}
+
+            {% if section_templates %}
+                <div class="template-list compact-template-list">
+                    {% for template in section_templates %}
+                        <a class="file-link" href="{{ template.template_file.url }}" download>
+                            {{ template.get_section_display }}: {{ template.filename }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data" id="upload-form">
+                {% csrf_token %}
+                <div class="drag-drop-zone" id="drag-drop-zone">
+                    <svg class="drag-drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <div class="drag-drop-zone-text">Drag & drop your file here</div>
+                    <div class="drag-drop-zone-subtext">or click to browse</div>
+                    <input type="file" id="file-input" name="uploaded_file" accept=".pdf,.doc,.docx" required>
+                </div>
+                {% if not resubmit_document %}
+                    <div class="form-field">
+                        <label for="{{ form.section.id_for_label }}">{{ form.section.label }}</label>
+                        {{ form.section }}
+                        {% if form.section.help_text %}
+                            <small class="help-text">{{ form.section.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.folder_name.id_for_label }}">{{ form.folder_name.label }}</label>
+                        {{ form.folder_name }}
+                        {% if form.folder_name.help_text %}
+                            <small class="help-text">{{ form.folder_name.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <button type="submit">
+                    {% if resubmit_document %}
+                        Upload Revised File
+                    {% elif existing_folder %}
+                        Add File
+                    {% else %}
+                        Create Folder and Submit File
+                    {% endif %}
+                </button>
+                <a class="btn" href="{% url 'dashboard' %}">Cancel</a>
+            </form>
+        </section>
+    </main>
+<script src="{% static 'js/drag-drop-upload.js' %}?v=20260706-drag-drop"></script>
+</body>
+</html>

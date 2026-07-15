@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Organizations List | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260702-organizations-optimized">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <a class="brand" href="{% url 'admin_dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">Organizations List</span>
+                </span>
+            </a>
+
+            <div class="actions">
+                <a class="btn" href="{% url 'home' %}">Home</a>
+                <form method="POST" action="{% url 'logout' %}" class="action-form">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        <section class="table-panel panel organizations-panel">
+            <div class="organizations-header">
+                <h1>Organizations List</h1>
+                <span class="organizations-count">{{ organizations|length }} registered</span>
+            </div>
+
+            {% if organizations %}
+                <div class="organizations-grid">
+                    {% for organization in organizations %}
+                        <a class="organization-card" href="{% url 'admin_organization_overview' organization.id %}">
+                            <div class="organization-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </div>
+                            <div class="organization-details">
+                                <h3>{{ organization.organization_name }}</h3>
+                                <span class="organization-username">@{{ organization.user.username }}</span>
+                            </div>
+                            <div class="organization-action">
+                                <span class="action-text">View Overview</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </div>
+                    <h3>No organizations registered yet.</h3>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+    <nav class="bottom-tabs" aria-label="Dashboard tabs">
+        <a class="bottom-tab" href="{% url 'admin_dashboard' %}">File Submissions</a>
+        <a class="bottom-tab is-active" href="{% url 'admin_organizations_list' %}">Organizations List</a>
+    </nav>
+    <script src="{% static 'js/tab-switch.js' %}?v=20260513-polished-tabs"></script>
+</body>
+</html>

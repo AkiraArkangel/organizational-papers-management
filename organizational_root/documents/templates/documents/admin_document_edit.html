@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+    <title>Edit Document | OrgSys</title>
+    <link rel="stylesheet" href="{% static 'css/orgsys.css' %}?v=20260524-single-review">
+    <style>
+        body { --page-bg: url("{% static 'images/snsu-background.jpg' %}"); }
+    </style>
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-panel review-panel panel">
+            <a class="brand" href="{% url 'admin_dashboard' %}">
+                <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
+                <span>
+                    <span class="brand-name">OrgSys</span>
+                    <span class="brand-subtitle">{{ admin_rank_label }} | Admin ID: {{ request.user.username }}</span>
+                </span>
+            </a>
+            {% include 'documents/_messages.html' %}
+            <div class="review-page-heading">
+                <h2>Edit Submitted Document</h2>
+                <span class="status {{ document.get_status_display|slugify }}">{{ document.get_status_display }}</span>
+            </div>
+
+            <div class="review-layout review-layout-no-preview">
+                <section class="document-review-card">
+                    <span class="document-review-kicker">Document details</span>
+                    <div class="document-meta-grid">
+                        <span>Organization</span>
+                        <strong>{{ document.organization_display_name }}</strong>
+                        <span>Section</span>
+                        <strong>{{ document.get_section_display }}</strong>
+                        <span>Status</span>
+                        <strong>{{ document.get_status_display }}</strong>
+                        <span>Submitted file</span>
+                        <strong>{{ document.uploaded_filename }}</strong>
+                    </div>
+                    {% if document.uploaded_file %}
+                        <div class="document-review-actions">
+                            <a class="btn" href="{% url 'admin_view_document' document.id %}" target="_blank" rel="noopener">Open PDF</a>
+                            <a class="btn" href="{% url 'admin_download_document' document.id %}">Download PDF as DOCX</a>
+                            {% if admin_rank == 'RANK_2' and document.is_forwardable_to_rank1 %}
+                                <form method="POST" action="{% url 'rank2_forward_document' document.id %}" class="action-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="success-btn">Forward to {{ rank1_admin_id }}</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p>No PDF file is available for this document.</p>
+                    {% endif %}
+                </section>
+
+                <form method="POST" enctype="multipart/form-data" class="correction-form">
+                    {% csrf_token %}
+                    <div class="form-section-heading">
+                        <h3>Admin Review</h3>
+                        <p>Review the document and mark as corrected if needed.</p>
+                    </div>
+                    <p>
+                        {{ form.review_file.label_tag }}
+                        {{ form.review_file }}
+                        {% if form.review_file.help_text %}
+                            <span class="helptext">{{ form.review_file.help_text }}</span>
+                        {% endif %}
+                        {% if form.review_file.errors %}
+                            {{ form.review_file.errors }}
+                        {% endif %}
+                    </p>
+                    <p>
+                        {{ form.correction_notes.label_tag }}
+                        {{ form.correction_notes }}
+                        {% if form.correction_notes.help_text %}
+                            <span class="helptext">{{ form.correction_notes.help_text }}</span>
+                        {% endif %}
+                        {% if form.correction_notes.errors %}
+                            {{ form.correction_notes.errors }}
+                        {% endif %}
+                    </p>
+                    <div class="live-checklist-preview" data-checklist-preview>
+                        <strong>Checklist Preview</strong>
+                        <div class="muted-text">Press Enter after an item to see it as a checklist entry.</div>
+                        <div class="live-checklist-items"></div>
+                    </div>
+                    {% if admin_rank == 'RANK_1' %}
+                        <div class="form-section-heading ready-section">
+                            <h3>Final Approval</h3>
+                            <p>This is separate from the organization's checklist progress.</p>
+                        </div>
+                        <label class="checklist-item ready-checkbox">
+                            {{ form.ready_for_printing }}
+                            <span>{{ form.ready_for_printing.label }}</span>
+                        </label>
+                        {% if form.ready_for_printing.help_text %}
+                            <span class="helptext">{{ form.ready_for_printing.help_text }}</span>
+                        {% endif %}
+                    {% elif admin_rank == 'RANK_2' %}
+                        <div class="form-section-heading ready-section">
+                            <h3>COI Approval</h3>
+                            <p>Approve the file after review, then forward it to DSAS from the dashboard.</p>
+                        </div>
+                        <label class="checklist-item ready-checkbox">
+                            {{ form.approve_by_coi }}
+                            <span>{{ form.approve_by_coi.label }}</span>
+                        </label>
+                        {% if form.approve_by_coi.help_text %}
+                            <span class="helptext">{{ form.approve_by_coi.help_text }}</span>
+                        {% endif %}
+                    {% endif %}
+                    <button type="submit">Save Review</button>
+                    <a class="btn" href="{% url 'admin_dashboard' %}">Cancel</a>
+                </form>
+            </div>
+        </section>
+    </main>
+    <script src="{% static 'js/checklist-preview.js' %}"></script>
+</body>
+</html>

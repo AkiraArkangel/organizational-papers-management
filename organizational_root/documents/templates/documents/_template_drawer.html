@@ -1,0 +1,21 @@
+<aside class="template-drawer" aria-label="Uploaded templates">
+    <input type="checkbox" id="template-drawer-toggle" class="template-drawer-toggle">
+    <label for="template-drawer-toggle" class="template-drawer-button" aria-label="Show templates">&lsaquo;</label>
+    <div class="template-drawer-panel">
+        <h2>Templates and Samples</h2>
+        {% for group in section_groups %}
+            <section class="template-drawer-section">
+                <h3>{{ group.section_label }}</h3>
+                {% if group.templates %}
+                    <div class="template-drawer-files">
+                        {% for template in group.templates %}
+                            <a class="file-link" href="{{ template.template_file.url }}" download>{{ template.filename }}</a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <span class="template-format-empty">No template or sample uploaded.</span>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+</aside>
