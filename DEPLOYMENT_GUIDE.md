@@ -1,16 +1,14 @@
-# Deployment Guide: Django App to Vercel
-# Updated for Vercel deployment
+# Deployment Guide: Django App to Vercel (2024 Updated)
 
 ## Prerequisites
 - Vercel account (free tier available)
 - GitHub account (for Git-based deployment)
 - PostgreSQL database (recommended for production - Vercel Postgres or external)
-- Python 3.14+ installed locally
 
 ## Step 1: Prepare Your Django App for Vercel
 
 ### 1.1 Update requirements.txt
-Your current requirements.txt is minimal. Add missing dependencies:
+Your current requirements.txt should include:
 
 ```
 asgiref==3.11.1
@@ -19,86 +17,25 @@ sqlparse==0.5.5
 tzdata==2026.2
 psycopg2-binary==2.9.9  # PostgreSQL adapter
 whitenoise==6.6.0  # Static file serving
-gunicorn==21.2.0  # Production WSGI server
+dj-database-url==2.1.0  # Database URL parsing
 ```
 
-### 1.2 Create vercel.json Configuration
-Create `vercel.json` in your project root:
-
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "organizational_root/wsgi.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "organizational_root/wsgi.py"
-    }
-  ]
-}
-```
+### 1.2 Update Django Settings for Production
+Your settings are already configured for production with environment variables. Key settings:
+- `DEBUG` controlled by environment variable
+- `SECRET_KEY` controlled by environment variable  
+- `ALLOWED_HOSTS` controlled by environment variable
+- Database switches between SQLite (local) and PostgreSQL (production)
+- Whitenoise middleware for static files
 
 ### 1.3 Create .env.example File
-Create `.env.example` in your project root:
+Your `.env.example` should be:
 
 ```
 DEBUG=False
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=replace-this-with-a-long-random-secret-key
 DATABASE_URL=postgresql://user:password@host:port/database
 ALLOWED_HOSTS=your-app.vercel.app
-```
-
-### 1.4 Update Django Settings for Production
-In `organizational_root/settings.py`:
-
-```python
-import os
-import dj_database_url
-
-# Security
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-SECRET_KEY = os.environ.get('SECRET_KEY', 'your-development-secret-key')
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
-# Database (PostgreSQL for production)
-if os.environ.get('DATABASE_URL'):
-    DATABASES = {
-        'default': dj_database_url.config(
-            conn_max_age=600,
-            conn_health_checks=True
-        )
-    }
-else:
-    # SQLite for local development
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-
-# Static files
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Whitenoise for static file serving
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    # ... other middleware
-]
-```
-
-### 1.5 Update requirements.txt Again
-Add the new dependency:
-
-```
-dj-database-url==2.1.0
 ```
 
 ## Step 2: Set Up PostgreSQL Database
@@ -158,81 +95,81 @@ If you prefer to set up PostgreSQL outside Vercel:
 postgresql://username:password@host:port/database_name
 ```
 
-## Step 3: Push Code to GitHub
+## Step 3: Deploy to Vercel (Current Interface)
 
-### 3.1 Initialize Git Repository
-```bash
-cd c:\Users\louie\OneDrive\Desktop\Organizational_Papers_Management_System
-git init
-git add .
-git commit -m "Initial commit"
-```
+### 3.1 Go to Vercel Dashboard
+1. Go to [vercel.com](https://vercel.com) and sign in
+2. Click **"Add New Project"** button (top right)
 
-### 3.2 Create GitHub Repository
-1. Go to GitHub.com
-2. Create a new repository
-3. Copy the repository URL
+### 3.2 Import Your GitHub Repository
+1. You should see your GitHub repositories listed
+2. Find and click **"AkiraArkangel/organizational-papers-management"**
+3. Click **"Import"** button
 
-### 3.3 Push to GitHub
-```bash
-git remote add origin https://github.com/your-username/your-repo-name.git
-git branch -M main
-git push -u origin main
-```
+### 3.3 Configure Project (Current Vercel Interface)
+Vercel will automatically detect Django and show a configuration screen:
 
-### 3.4 Create .gitignore
-Create `.gitignore` in project root:
+**Project Configuration:**
+- **Project Name**: Leave as default or change to something memorable
+- **Framework Preset**: Should auto-detect as "Django" (if not, select "Django")
+- **Root Directory**: Type `organizational_root`
+- **Build Command**: Leave empty (Vercel auto-detects)
+- **Output Directory**: Leave empty
 
-```
-organizational_env/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-db.sqlite3
-.env
-.venv
-*.log
-.DS_Store
-```
+Click **"Continue"** to proceed.
 
-## Step 4: Deploy to Vercel
-
-### 4.1 Connect Vercel to GitHub
-1. Go to [vercel.com](https://vercel.com)
-2. Sign up/login
-3. Click "Add New Project"
-4. Import your GitHub repository
-
-### 4.2 Configure Project Settings
-1. **Framework Preset**: Select "Other"
-2. **Root Directory**: `organizational_root`
-3. **Build Command**: Leave empty (Vercel auto-detects)
-4. **Output Directory**: Leave empty
-5. Click "Continue"
-
-### 4.3 Add Environment Variables
-In Vercel project settings → Environment Variables:
+### 3.4 Add Environment Variables
+On the next screen, add these environment variables:
 
 ```
 DEBUG = False
-SECRET_KEY = (generate a strong random key)
-DATABASE_URL = (your PostgreSQL connection string)
-ALLOWED_HOSTS = your-project-name.vercel.app
+SECRET_KEY = (generate with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())")
+DATABASE_URL = (leave empty for now, will add after database setup)
+ALLOWED_HOSTS = localhost
 ```
 
-**Generate SECRET_KEY:**
-```python
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-```
+Click **"Continue"** to proceed.
 
-**Note:** You'll get your actual project name after deployment, so you may need to update `ALLOWED_HOSTS` later.
+### 3.5 Deploy
+1. Click **"Deploy"** button
+2. Wait for deployment to complete (1-2 minutes)
+3. Vercel will provide a URL like `https://your-project-name.vercel.app`
+4. Copy this URL for later use
 
-### 4.4 Deploy
-1. Click "Deploy"
-2. Wait for deployment to complete
-3. Vercel will provide a URL like `https://your-project.vercel.app`
-4. Copy this URL and update your `ALLOWED_HOSTS` environment variable if needed
+### 3.6 Connect Supabase Database
+After deployment completes:
+
+1. Go to your Vercel project dashboard
+2. Click **"Storage"** tab in left sidebar
+3. Click **"Create Database"**
+4. Select **"Supabase"** from the marketplace
+5. Click **"Add"**
+6. In the integration form:
+   - **Connect a Project**: Select your Vercel project (should now appear)
+   - **Environments**: Select **Production**
+   - **Custom Prefix**: Leave as `STORAGE_URL`
+7. Click **"Install"**
+
+### 3.7 Update Environment Variables with Database
+After Supabase integration:
+
+1. Go to your Vercel project → **Settings** → **Environment Variables**
+2. Look for the Supabase connection string (likely named `POSTGRES_URL` or similar)
+3. Add/update these variables:
+   ```
+   DATABASE_URL = (the Supabase connection string)
+   ALLOWED_HOSTS = (your Vercel URL from step 3.5)
+   ```
+4. Click **"Save"**
+5. Vercel will automatically redeploy with the database connection
+
+### 3.8 Run Database Migrations
+After the redeployment completes, you need to run migrations:
+
+1. Install Vercel CLI: `npm install -g vercel`
+2. Login: `vercel login`
+3. Run migrations: `vercel run python manage.py migrate`
+4. Collect static files: `vercel run python manage.py collectstatic --noinput`
 
 ## Step 5: Post-Deployment Setup
 
