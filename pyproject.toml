@@ -3,5 +3,5 @@ name = "organizational-papers-management"
 version = "1.0.0"
 
 [tool.vercel]
-# Vercel entrypoint configuration
-entrypoint = "organizational_system.wsgi:application"
+# Vercel entrypoint configuration - since manage.py is in organizational_root/
+entrypoint = "organizational_root/organizational_system.wsgi:application"
