@@ -1,4 +1,5 @@
 # Deployment Guide: Django App to Vercel (2024 Updated)
+# Requirements.txt moved to root for Vercel compatibility
 
 ## Prerequisites
 - Vercel account (free tier available)
