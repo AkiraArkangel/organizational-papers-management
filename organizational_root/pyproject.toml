@@ -1,0 +1,7 @@
+[project]
+name = "organizational-papers-management"
+version = "1.0.0"
+
+[tool.vercel]
+# Vercel entrypoint configuration - relative to organizational_root/
+entrypoint = "organizational_system.wsgi:application"
