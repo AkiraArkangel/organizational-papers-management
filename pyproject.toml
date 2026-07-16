@@ -5,7 +5,3 @@ version = "1.0.0"
 [tool.vercel]
 # Vercel entrypoint configuration
 entrypoint = "organizational_system.wsgi:application"
-
-[tool.vercel.scripts]
-# Build command for Vercel
-build = "python manage.py collectstatic --noinput"
