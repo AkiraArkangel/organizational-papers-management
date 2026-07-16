@@ -1,4 +1,5 @@
 # Deployment Guide: Django App to Vercel
+# Updated for Vercel deployment
 
 ## Prerequisites
 - Vercel account (free tier available)
@@ -102,17 +103,60 @@ dj-database-url==2.1.0
 
 ## Step 2: Set Up PostgreSQL Database
 
-### Option A: Vercel Postgres (Recommended)
-1. Go to Vercel dashboard
-2. Click "Storage" → "Create Database"
-3. Select "Postgres"
-4. Choose a region and create
-5. Copy the connection string (DATABASE_URL)
+### Option A: Vercel Database Marketplace (Recommended)
+Vercel now offers PostgreSQL through their marketplace providers. Here are the best options:
 
-### Option B: External PostgreSQL
-1. Use services like Supabase, Railway, or Neon
-2. Get your DATABASE_URL connection string
-3. Save it for environment variables
+**Supabase (Recommended - Free Tier Available)**
+1. Go to Vercel dashboard → "Storage" → "Create Database"
+2. Select "Supabase" from the marketplace
+3. Click "Add" and follow the setup wizard
+4. Create a new Supabase project or link existing one
+5. Once connected, go to your Vercel project settings → Environment Variables
+6. Copy the `POSTGRES_URL` or `DATABASE_URL` provided by Supabase
+
+**Neon (Alternative - Free Tier Available)**
+1. Go to Vercel dashboard → "Storage" → "Create Database"
+2. Select "Neon" from the marketplace
+3. Click "Add" and follow the setup wizard
+4. Create a new Neon project
+5. Copy the connection string from Neon dashboard
+6. Add as `DATABASE_URL` in Vercel environment variables
+
+**Prisma Postgres (Alternative)**
+1. Go to Vercel dashboard → "Storage" → "Create Database"
+2. Select "Prisma Postgres" from the marketplace
+3. Follow the setup wizard
+4. Copy the connection string provided
+5. Add as `DATABASE_URL` in Vercel environment variables
+
+### Option B: External PostgreSQL (Manual Setup)
+If you prefer to set up PostgreSQL outside Vercel:
+
+**Supabase (External)**
+1. Go to [supabase.com](https://supabase.com) and sign up
+2. Create a new project
+3. Wait for project to be ready (2-3 minutes)
+4. Go to Project Settings → Database
+5. Copy the "Connection string" under "Connection info"
+6. Replace `[your-password]` with your actual database password
+7. Use this as your `DATABASE_URL`
+
+**Neon (External)**
+1. Go to [neon.tech](https://neon.tech) and sign up
+2. Create a new project
+3. Copy the connection string from the dashboard
+4. Use this as your `DATABASE_URL`
+
+**Railway (External)**
+1. Go to [railway.app](https://railway.app) and sign up
+2. Click "New Project" → "Provision PostgreSQL"
+3. Copy the connection string from the database view
+4. Use this as your `DATABASE_URL`
+
+**Connection String Format:**
+```
+postgresql://username:password@host:port/database_name
+```
 
 ## Step 3: Push Code to GitHub
 
@@ -165,6 +209,7 @@ db.sqlite3
 2. **Root Directory**: `organizational_root`
 3. **Build Command**: Leave empty (Vercel auto-detects)
 4. **Output Directory**: Leave empty
+5. Click "Continue"
 
 ### 4.3 Add Environment Variables
 In Vercel project settings → Environment Variables:
@@ -181,10 +226,13 @@ ALLOWED_HOSTS = your-project-name.vercel.app
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
 
+**Note:** You'll get your actual project name after deployment, so you may need to update `ALLOWED_HOSTS` later.
+
 ### 4.4 Deploy
 1. Click "Deploy"
 2. Wait for deployment to complete
 3. Vercel will provide a URL like `https://your-project.vercel.app`
+4. Copy this URL and update your `ALLOWED_HOSTS` environment variable if needed
 
 ## Step 5: Post-Deployment Setup
 
