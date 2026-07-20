@@ -132,7 +132,8 @@ USE_I18N = True
 USE_TZ = True
 
 # Media files configuration
-if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_KEY'):
+# Always use Supabase Storage for production (Vercel)
+if not DEBUG:
     # Use Supabase Storage for production (Vercel)
     from supabase import create_client
     
