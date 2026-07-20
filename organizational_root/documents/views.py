@@ -405,12 +405,16 @@ def upload_document(request):
                         name=form.cleaned_data['folder_name'],
                     )
 
-                doc = form.save(commit=False)
-                doc.user = request.user
-                doc.folder = folder
-                doc.section = folder.section
-                doc.title = uploaded_file.name
-                doc.status = 'SUBMITTED'
+                # Create document manually since form is now a regular Form
+                from .models import Document
+                
+                doc = Document(
+                    user=request.user,
+                    folder=folder,
+                    section=folder.section,
+                    title=uploaded_file.name,
+                    status='SUBMITTED'
+                )
                 
                 # Handle file upload to Supabase directly
                 if uploaded_file:

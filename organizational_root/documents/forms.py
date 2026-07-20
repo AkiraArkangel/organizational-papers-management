@@ -158,7 +158,22 @@ class AccountRegisterForm(forms.Form):
         return user
 
 
-class DocumentUploadForm(forms.ModelForm):
+class DocumentUploadForm(forms.Form):
+    section = forms.ChoiceField(
+        label='Section',
+        choices=[
+            ('ORGANIZATION_ACTIVITIES', 'Organization Activities'),
+            ('ORGANIZATION_STRUCTURE', 'Organization Structure'),
+            ('OFFICERS_LIST', 'Officers List'),
+            ('CONSTITUTION_BYLAWS', 'Constitution and Bylaws'),
+            ('ACTIVITY_PLANS', 'Activity Plans'),
+            ('FINANCIAL_REPORTS', 'Financial Reports'),
+            ('PROJECT_PROPOSALS', 'Project Proposals'),
+            ('CERTIFICATES', 'Certificates'),
+            ('OTHER_DOCUMENTS', 'Other Documents'),
+        ],
+        required=True,
+    )
     folder_name = forms.CharField(
         label='Folder name',
         max_length=255,
@@ -181,10 +196,6 @@ class DocumentUploadForm(forms.ModelForm):
             self.fields['folder_name'].help_text = 'This file will be added to the selected folder.'
         if resubmitting:
             self.fields['folder_name'].help_text = 'Resubmission keeps this file in its current folder.'
-
-    class Meta:
-        model = Document
-        fields = ['section', 'folder_name']
 
     def clean_folder_name(self):
         folder_name = self.cleaned_data.get('folder_name', '').strip()
