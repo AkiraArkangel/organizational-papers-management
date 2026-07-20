@@ -405,44 +405,12 @@ def upload_document(request):
                         name=form.cleaned_data['folder_name'],
                     )
 
-                # Create document manually since form is now a regular Form
-                from .models import Document
-                
-                doc = Document(
-                    user=request.user,
-                    folder=folder,
-                    section=folder.section,
-                    title=uploaded_file.name,
-                    status='SUBMITTED'
-                )
-                
-                # Handle file upload to Supabase directly
-                if uploaded_file:
-                    import os
-                    from supabase import create_client
-                    
-                    supabase_url = os.environ.get('SUPABASE_URL')
-                    supabase_key = os.environ.get('SUPABASE_KEY')
-                    supabase_bucket = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
-                    
-                    # Upload to Supabase
-                    client = create_client(supabase_url, supabase_key)
-                    file_path = f"uploads/{uploaded_file.name}"
-                    
-                    # Read file content
-                    uploaded_file.seek(0)
-                    file_content = uploaded_file.read()
-                    
-                    # Upload to Supabase Storage
-                    client.storage.from_(supabase_bucket).upload(
-                        path=file_path,
-                        file=file_content,
-                        file_options={'content-type': 'application/pdf'}
-                    )
-                    
-                    # Save only the path as string
-                    doc.uploaded_file = file_path
-                
+                doc = form.save(commit=False)
+                doc.user = request.user
+                doc.folder = folder
+                doc.section = folder.section
+                doc.title = uploaded_file.name
+                doc.status = 'SUBMITTED'
                 doc.save()
 
                 if folder.forwarded_to_admin_at:
