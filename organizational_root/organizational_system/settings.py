@@ -184,7 +184,15 @@ class SupabaseStorage:
         # Delete file from Supabase Storage
         self.client.storage.from_(self.bucket).remove([name])
 
-DEFAULT_FILE_STORAGE = 'organizational_system.settings.SupabaseStorage'
+# Create storage instance
+supabase_storage = SupabaseStorage()
+
+# Use STORAGES setting for Django 4.2+
+STORAGES = {
+    'default': {
+        'BACKEND': 'organizational_system.settings.SupabaseStorage',
+    }
+}
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
