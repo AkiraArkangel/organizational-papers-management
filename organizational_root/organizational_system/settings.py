@@ -132,27 +132,57 @@ USE_I18N = True
 USE_TZ = True
 
 # Media files configuration
-if os.environ.get('AWS_ACCESS_KEY_ID'):
-    # Use AWS S3 for production (Vercel)
-    import boto3
-    from storages.backends.s3boto3 import S3Boto3Storage
+if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_KEY'):
+    # Use Supabase Storage for production (Vercel)
+    from supabase import create_client
     
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # Supabase configuration
+    SUPABASE_URL = os.environ.get('SUPABASE_URL')
+    SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+    SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
     
-    MEDIA_URL = f"https://{os.environ.get('AWS_STORAGE_BUCKET_NAME')}.s3.amazonaws.com/media/"
+    # Create Supabase client
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    
+    MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/"
     MEDIA_ROOT = 'media/'
     
-    # S3 configuration
-    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
-    AWS_DEFAULT_ACL = None
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
-    }
-    AWS_S3_FILE_OVERWRITE = False
+    # Custom Supabase storage backend
+    class SupabaseStorage:
+        def __init__(self):
+            self.client = create_client(SUPABASE_URL, SUPABASE_KEY)
+            self.bucket = SUPABASE_STORAGE_BUCKET
+            
+        def _save(self, name, content):
+            # Upload file to Supabase Storage
+            content.seek(0)
+            file_data = content.read()
+            
+            response = self.client.storage.from_(self.bucket).upload(
+                path=name,
+                file=file_data,
+                file_options={'content-type': 'application/pdf'}
+            )
+            
+            return name
+            
+        def url(self, name):
+            # Get public URL for file
+            return f"{SUPABASE_URL}/storage/v1/object/public/{self.bucket}/{name}"
+            
+        def exists(self, name):
+            # Check if file exists
+            try:
+                self.client.storage.from_(self.bucket).get_public_url(name)
+                return True
+            except:
+                return False
+                
+        def delete(self, name):
+            # Delete file from Supabase Storage
+            self.client.storage.from_(self.bucket).remove([name])
+    
+    DEFAULT_FILE_STORAGE = 'organizational_system.settings.SupabaseStorage'
 else:
     # Use local filesystem for development
     MEDIA_URL = '/media/'
