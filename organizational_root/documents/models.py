@@ -2,6 +2,53 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from pathlib import Path
+import os
+from supabase import create_client
+
+# Supabase Storage configuration
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
+
+# Custom Supabase storage backend
+class SupabaseStorage:
+    def __init__(self):
+        self._client = None
+        self.bucket = SUPABASE_STORAGE_BUCKET
+        
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        return self._client
+        
+    def _save(self, name, content):
+        content.seek(0)
+        file_data = content.read()
+        
+        response = self.client.storage.from_(self.bucket).upload(
+            path=name,
+            file=file_data,
+            file_options={'content-type': 'application/pdf'}
+        )
+        
+        return name
+        
+    def url(self, name):
+        return f"{SUPABASE_URL}/storage/v1/object/public/{self.bucket}/{name}"
+        
+    def exists(self, name):
+        try:
+            self.client.storage.from_(self.bucket).get_public_url(name)
+            return True
+        except:
+            return False
+            
+    def delete(self, name):
+        self.client.storage.from_(self.bucket).remove([name])
+
+# Create storage instance
+supabase_storage = SupabaseStorage()
 
 
 class CorrectionItem(models.Model):
@@ -88,7 +135,7 @@ class Notification(models.Model):
 class OrganizationProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     organization_name = models.CharField(max_length=255)
-    logo = models.FileField(upload_to='organization_logos/', null=True, blank=True)
+    logo = models.FileField(upload_to='organization_logos/', null=True, blank=True, storage=supabase_storage)
     logo_updated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -112,7 +159,7 @@ class OrganizationOfficer(models.Model):
     )
     position = models.CharField(max_length=120)
     name = models.CharField(max_length=180)
-    photo = models.FileField(upload_to='officers/', null=True, blank=True)
+    photo = models.FileField(upload_to='officers/', null=True, blank=True, storage=supabase_storage)
     photo_updated_at = models.DateTimeField(null=True, blank=True)
     display_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -196,8 +243,8 @@ class Document(models.Model):
         default='ORGANIZATION_ACTIVITIES',
     )
     title = models.CharField(max_length=255)
-    uploaded_file = models.FileField(upload_to='uploads/')
-    corrected_file = models.FileField(upload_to='corrected/', null=True, blank=True)
+    uploaded_file = models.FileField(upload_to='uploads/', storage=supabase_storage)
+    corrected_file = models.FileField(upload_to='corrected/', null=True, blank=True, storage=supabase_storage)
     correction_notes = models.TextField(blank=True)
     correction_checklist_state = models.JSONField(default=dict, blank=True)
 
@@ -596,7 +643,7 @@ class FileSectionTemplate(models.Model):
         max_length=40,
         choices=Document.SECTION_CHOICES,
     )
-    template_file = models.FileField(upload_to='templates/')
+    template_file = models.FileField(upload_to='templates/', storage=supabase_storage)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     uploaded_at = models.DateTimeField(auto_now=True)
 
@@ -620,7 +667,7 @@ class SignedScannedCopy(models.Model):
         related_name='signed_copies',
     )
     title = models.CharField(max_length=255)
-    signed_file = models.FileField(upload_to='signed_copies/')
+    signed_file = models.FileField(upload_to='signed_copies/', storage=supabase_storage)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     forwarded_to_adviser_at = models.DateTimeField(null=True, blank=True)
     forwarded_to_coi_at = models.DateTimeField(null=True, blank=True)
