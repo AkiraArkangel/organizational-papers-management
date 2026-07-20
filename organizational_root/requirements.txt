@@ -8,3 +8,4 @@ gunicorn==21.2.0  # Production WSGI server
 dj-database-url==2.1.0
 supabase==2.3.0  # Supabase Python client
 django-storages==1.14.2  # Django storage backends
+httpx==0.27.0  # Required for Supabase client
