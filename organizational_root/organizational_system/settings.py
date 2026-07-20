@@ -132,64 +132,59 @@ USE_I18N = True
 USE_TZ = True
 
 # Media files configuration
-# Use Supabase Storage for production (Vercel)
+# Force Supabase Storage for production (Vercel)
+from supabase import create_client
+
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
 
-if SUPABASE_URL and SUPABASE_KEY:
-    from supabase import create_client
-    
-    MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/"
-    MEDIA_ROOT = 'media/'
-    
-    # Custom Supabase storage backend
-    class SupabaseStorage:
-        def __init__(self):
-            self._client = None
-            self.bucket = SUPABASE_STORAGE_BUCKET
+MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/"
+MEDIA_ROOT = 'media/'
+
+# Custom Supabase storage backend
+class SupabaseStorage:
+    def __init__(self):
+        self._client = None
+        self.bucket = SUPABASE_STORAGE_BUCKET
+        
+    @property
+    def client(self):
+        # Lazy initialization to avoid build-time errors
+        if self._client is None:
+            self._client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        return self._client
+        
+    def _save(self, name, content):
+        # Upload file to Supabase Storage
+        content.seek(0)
+        file_data = content.read()
+        
+        response = self.client.storage.from_(self.bucket).upload(
+            path=name,
+            file=file_data,
+            file_options={'content-type': 'application/pdf'}
+        )
+        
+        return name
+        
+    def url(self, name):
+        # Get public URL for file
+        return f"{SUPABASE_URL}/storage/v1/object/public/{self.bucket}/{name}"
+        
+    def exists(self, name):
+        # Check if file exists
+        try:
+            self.client.storage.from_(self.bucket).get_public_url(name)
+            return True
+        except:
+            return False
             
-        @property
-        def client(self):
-            # Lazy initialization to avoid build-time errors
-            if self._client is None:
-                self._client = create_client(SUPABASE_URL, SUPABASE_KEY)
-            return self._client
-            
-        def _save(self, name, content):
-            # Upload file to Supabase Storage
-            content.seek(0)
-            file_data = content.read()
-            
-            response = self.client.storage.from_(self.bucket).upload(
-                path=name,
-                file=file_data,
-                file_options={'content-type': 'application/pdf'}
-            )
-            
-            return name
-            
-        def url(self, name):
-            # Get public URL for file
-            return f"{SUPABASE_URL}/storage/v1/object/public/{self.bucket}/{name}"
-            
-        def exists(self, name):
-            # Check if file exists
-            try:
-                self.client.storage.from_(self.bucket).get_public_url(name)
-                return True
-            except:
-                return False
-                
-        def delete(self, name):
-            # Delete file from Supabase Storage
-            self.client.storage.from_(self.bucket).remove([name])
-    
-    DEFAULT_FILE_STORAGE = 'organizational_system.settings.SupabaseStorage'
-else:
-    # Use local filesystem for development
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    def delete(self, name):
+        # Delete file from Supabase Storage
+        self.client.storage.from_(self.bucket).remove([name])
+
+DEFAULT_FILE_STORAGE = 'organizational_system.settings.SupabaseStorage'
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
