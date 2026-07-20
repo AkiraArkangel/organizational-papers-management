@@ -141,17 +141,21 @@ if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_KEY'):
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
     SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
     
-    # Create Supabase client
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    
     MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/"
     MEDIA_ROOT = 'media/'
     
     # Custom Supabase storage backend
     class SupabaseStorage:
         def __init__(self):
-            self.client = create_client(SUPABASE_URL, SUPABASE_KEY)
+            self._client = None
             self.bucket = SUPABASE_STORAGE_BUCKET
+            
+        @property
+        def client(self):
+            # Lazy initialization to avoid build-time errors
+            if self._client is None:
+                self._client = create_client(SUPABASE_URL, SUPABASE_KEY)
+            return self._client
             
         def _save(self, name, content):
             # Upload file to Supabase Storage
