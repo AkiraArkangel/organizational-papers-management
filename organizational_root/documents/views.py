@@ -436,8 +436,8 @@ def upload_document(request):
                         file_options={'content-type': 'application/pdf'}
                     )
                     
-                    # Save only the filename, not the actual file
-                    doc.uploaded_file.name = file_path
+                    # Save only the path as string
+                    doc.uploaded_file = file_path
                 
                 doc.save()
 

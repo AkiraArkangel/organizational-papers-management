@@ -243,8 +243,8 @@ class Document(models.Model):
         default='ORGANIZATION_ACTIVITIES',
     )
     title = models.CharField(max_length=255)
-    uploaded_file = models.FileField(upload_to='uploads/', storage=supabase_storage)
-    corrected_file = models.FileField(upload_to='corrected/', null=True, blank=True, storage=supabase_storage)
+    uploaded_file = models.CharField(max_length=500, null=True, blank=True)  # Store Supabase path
+    corrected_file = models.CharField(max_length=500, null=True, blank=True)  # Store Supabase path
     correction_notes = models.TextField(blank=True)
     correction_checklist_state = models.JSONField(default=dict, blank=True)
 

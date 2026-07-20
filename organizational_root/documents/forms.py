@@ -165,6 +165,7 @@ class DocumentUploadForm(forms.ModelForm):
         required=False,
         help_text='Name the folder the Activity Name or Report that you will be submitting.',
     )
+    uploaded_file = forms.FileField(label='Upload PDF file', required=True)
 
     def __init__(self, *args, locked_section=None, existing_folder=None, resubmitting=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -183,7 +184,7 @@ class DocumentUploadForm(forms.ModelForm):
 
     class Meta:
         model = Document
-        fields = ['section', 'folder_name', 'uploaded_file']
+        fields = ['section', 'folder_name']
 
     def clean_folder_name(self):
         folder_name = self.cleaned_data.get('folder_name', '').strip()
