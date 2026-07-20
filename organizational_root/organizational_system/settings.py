@@ -135,6 +135,12 @@ USE_TZ = True
 # Force Supabase Storage for production (Vercel) by checking if running in Vercel
 IS_VERCEL = os.environ.get('VERCEL') == '1'
 
+# Debug logging
+print(f"DEBUG: IS_VERCEL = {IS_VERCEL}")
+print(f"DEBUG: VERCEL env var = {os.environ.get('VERCEL')}")
+print(f"DEBUG: SUPABASE_URL = {os.environ.get('SUPABASE_URL')}")
+print(f"DEBUG: SUPABASE_KEY = {os.environ.get('SUPABASE_KEY')[:20] if os.environ.get('SUPABASE_KEY') else 'None'}...")
+
 if IS_VERCEL:
     # Use Supabase Storage for production (Vercel)
     from supabase import create_client
@@ -145,6 +151,9 @@ if IS_VERCEL:
     
     MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/"
     MEDIA_ROOT = 'media/'
+    
+    print(f"DEBUG: Using Supabase Storage")
+    print(f"DEBUG: MEDIA_URL = {MEDIA_URL}")
     
     # Custom Supabase storage backend
     class SupabaseStorage:
@@ -193,6 +202,7 @@ else:
     # Use local filesystem for development
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    print(f"DEBUG: Using local filesystem storage")
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
