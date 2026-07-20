@@ -132,16 +132,13 @@ USE_I18N = True
 USE_TZ = True
 
 # Media files configuration
-# Force Supabase Storage for production (Vercel) by checking if running in Vercel
-IS_VERCEL = os.environ.get('VERCEL') == '1'
+# Use Supabase Storage for production (Vercel)
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
 
-if IS_VERCEL:
-    # Use Supabase Storage for production (Vercel)
+if SUPABASE_URL and SUPABASE_KEY:
     from supabase import create_client
-    
-    SUPABASE_URL = os.environ.get('SUPABASE_URL')
-    SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
-    SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'documents')
     
     MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/"
     MEDIA_ROOT = 'media/'
