@@ -191,6 +191,9 @@ supabase_storage = SupabaseStorage()
 STORAGES = {
     'default': {
         'BACKEND': 'organizational_system.settings.SupabaseStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     }
 }
 
