@@ -2,16 +2,21 @@
   "builds": [
     {
       "src": "organizational_root/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "runtime": "python3.12"
-      }
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/organizational_root/static/$1"
+    },
+    {
+      "src": "/media/(.*)",
+      "dest": "/organizational_root/media/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "organizational_root/wsgi.py"
+      "dest": "/organizational_root/wsgi.py"
     }
   ],
   "installCommand": "uv pip install --system -r organizational_root/requirements.txt"
