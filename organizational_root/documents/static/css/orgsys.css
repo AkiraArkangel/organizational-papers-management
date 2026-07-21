@@ -2381,6 +2381,17 @@ button:disabled:focus,
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+.action-btn.warning {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.9), rgba(245, 158, 11, 0.9));
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.action-btn.warning:hover {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 1), rgba(245, 158, 11, 1));
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
 .action-btn.small {
     padding: 6px 12px;
     font-size: 12px;
@@ -4075,22 +4086,122 @@ tr:nth-child(even) {
 
 .message-stack {
     display: grid;
-    gap: 8px;
-    margin: 0 0 16px;
+    gap: 12px;
+    margin: 0 0 24px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 400px;
 }
 
 .message {
-    padding: 10px 12px;
-    border: 1px solid rgba(215, 242, 223, 0.28);
-    border-radius: 6px;
-    background: rgba(2, 24, 27, 0.7);
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(2, 24, 27, 0.95), rgba(8, 42, 39, 0.95));
     color: #ffffff;
-    font-weight: 800;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(215, 242, 223, 0.2);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.message::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #4ade80, #22c55e);
+    border-radius: 12px 0 0 12px;
+}
+
+.message:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(215, 242, 223, 0.4);
+}
+
+.message:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .message-error {
-    border-color: rgba(255, 215, 215, 0.5);
-    background: rgba(183, 28, 28, 0.72);
+    border-color: rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg, rgba(183, 28, 28, 0.95), rgba(220, 38, 38, 0.95));
+}
+
+.message-error::before {
+    background: linear-gradient(180deg, #f87171, #ef4444);
+}
+
+.message-error:hover {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 8px 30px rgba(239, 68, 68, 0.3);
+}
+
+.message-success {
+    border-color: rgba(34, 197, 94, 0.3);
+    background: linear-gradient(135deg, rgba(2, 24, 27, 0.95), rgba(8, 42, 39, 0.95));
+}
+
+.message-success::before {
+    background: linear-gradient(180deg, #4ade80, #22c55e);
+}
+
+.message-success:hover {
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 8px 30px rgba(34, 197, 94, 0.3);
+}
+
+.message-warning {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: linear-gradient(135deg, rgba(180, 83, 9, 0.95), rgba(217, 119, 6, 0.95));
+}
+
+.message-warning::before {
+    background: linear-gradient(180deg, #fbbf24, #f59e0b);
+}
+
+.message-warning:hover {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 8px 30px rgba(251, 191, 36, 0.3);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.message {
+    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message.fade-out {
+    animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .hidden {

@@ -871,6 +871,283 @@ def delete_document(request, document_id):
 
 @login_required
 @require_POST
+def delete_folder(request, folder_id):
+    if request.user.is_staff or adviser_profile_for(request.user):
+        return redirect_for_user(request.user)
+
+    folder = get_object_or_404(SubmissionFolder, pk=folder_id, user=request.user)
+    
+    # Delete all documents in the folder
+    for document in folder.documents.all():
+        delete_document_files(document)
+        document.delete()
+    
+    # Delete all signed copies in the folder
+    for signed_copy in folder.signed_copies.all():
+        signed_copy.delete()
+    
+    folder.delete()
+    messages.success(request, 'Folder and all its files deleted successfully.')
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def cancel_folder_submission(request, folder_id):
+    """Cancel folder submission by reverting forwarding status"""
+    if request.user.is_staff or adviser_profile_for(request.user):
+        return redirect_for_user(request.user)
+
+    folder = get_object_or_404(SubmissionFolder, pk=folder_id, user=request.user)
+    
+    # Check if folder has been forwarded
+    if not folder.forwarded_to_admin_at and not folder.forwarded_to_rank1_at:
+        messages.error(request, 'This folder has not been submitted yet.')
+        return redirect('dashboard')
+    
+    # Revert folder forwarding status
+    folder.forwarded_to_admin_at = None
+    folder.admin_notification_seen_at = None
+    folder.rank2_reviewed_by = None
+    folder.forwarded_to_rank1_at = None
+    folder.rank1_notification_seen_at = None
+    folder.save(update_fields=[
+        'forwarded_to_admin_at',
+        'admin_notification_seen_at',
+        'rank2_reviewed_by',
+        'forwarded_to_rank1_at',
+        'rank1_notification_seen_at',
+    ])
+    
+    # Revert all documents in the folder
+    for document in folder.documents.all():
+        document.forwarded_to_admin_at = None
+        document.admin_notification_seen_at = None
+        document.rank2_reviewed_by = None
+        document.forwarded_to_rank1_at = None
+        document.rank1_notification_seen_at = None
+        document.correction_reviewed_by = None
+        document.status = 'SUBMITTED'
+        document.adviser_status = 'PENDING'
+        document.adviser_reviewed_by = None
+        document.adviser_status_updated_at = None
+        document.save(update_fields=[
+            'forwarded_to_admin_at',
+            'admin_notification_seen_at',
+            'rank2_reviewed_by',
+            'forwarded_to_rank1_at',
+            'rank1_notification_seen_at',
+            'correction_reviewed_by',
+            'status',
+            'adviser_status',
+            'adviser_reviewed_by',
+            'adviser_status_updated_at',
+        ])
+    
+    messages.success(request, 'Folder submission cancelled successfully. You can now make changes.')
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def cancel_document_submission(request, document_id):
+    """Cancel document submission by reverting forwarding status"""
+    if request.user.is_staff or adviser_profile_for(request.user):
+        return redirect_for_user(request.user)
+
+    document = get_object_or_404(Document, pk=document_id, user=request.user)
+    
+    # Check if document has been forwarded
+    if not document.forwarded_to_admin_at and not document.forwarded_to_rank1_at:
+        messages.error(request, 'This document has not been submitted yet.')
+        return redirect('dashboard')
+    
+    # Revert document forwarding status
+    document.forwarded_to_admin_at = None
+    document.admin_notification_seen_at = None
+    document.rank2_reviewed_by = None
+    document.forwarded_to_rank1_at = None
+    document.rank1_notification_seen_at = None
+    document.correction_reviewed_by = None
+    document.status = 'SUBMITTED'
+    document.adviser_status = 'PENDING'
+    document.adviser_reviewed_by = None
+    document.adviser_status_updated_at = None
+    document.save(update_fields=[
+        'forwarded_to_admin_at',
+        'admin_notification_seen_at',
+        'rank2_reviewed_by',
+        'forwarded_to_rank1_at',
+        'rank1_notification_seen_at',
+        'correction_reviewed_by',
+        'status',
+        'adviser_status',
+        'adviser_reviewed_by',
+        'adviser_status_updated_at',
+    ])
+    
+    # Also revert folder status if this was the only document keeping it forwarded
+    folder = document.folder
+    if folder and folder.forwarded_to_admin_at:
+        # Check if any other documents are still forwarded
+        other_forwarded = folder.documents.exclude(id=document.id).filter(
+            forwarded_to_admin_at__isnull=False
+        ).exists()
+        if not other_forwarded:
+            folder.forwarded_to_admin_at = None
+            folder.admin_notification_seen_at = None
+            folder.rank2_reviewed_by = None
+            folder.forwarded_to_rank1_at = None
+            folder.rank1_notification_seen_at = None
+            folder.save(update_fields=[
+                'forwarded_to_admin_at',
+                'admin_notification_seen_at',
+                'rank2_reviewed_by',
+                'forwarded_to_rank1_at',
+                'rank1_notification_seen_at',
+            ])
+    
+    messages.success(request, 'Document submission cancelled successfully. You can now make changes.')
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def adviser_cancel_folder_submission(request, folder_id):
+    """Adviser cancels folder submission by reverting forwarding status back to organization"""
+    adviser_profile = adviser_profile_for(request.user)
+    if not adviser_profile:
+        return redirect_for_user(request.user)
+
+    folder = get_object_or_404(
+        SubmissionFolder.objects.prefetch_related('documents'),
+        pk=folder_id,
+    )
+    
+    # Check if folder belongs to adviser's organization
+    if folder.user.organizationprofile != adviser_profile.organization:
+        messages.error(request, 'You can only cancel submissions for your organization.')
+        return redirect('adviser_dashboard')
+    
+    # Check if folder has been forwarded
+    if not folder.forwarded_to_admin_at and not folder.forwarded_to_rank1_at:
+        messages.error(request, 'This folder has not been submitted yet.')
+        return redirect('adviser_dashboard')
+    
+    # Revert folder forwarding status
+    folder.forwarded_to_admin_at = None
+    folder.admin_notification_seen_at = None
+    folder.rank2_reviewed_by = None
+    folder.forwarded_to_rank1_at = None
+    folder.rank1_notification_seen_at = None
+    folder.save(update_fields=[
+        'forwarded_to_admin_at',
+        'admin_notification_seen_at',
+        'rank2_reviewed_by',
+        'forwarded_to_rank1_at',
+        'rank1_notification_seen_at',
+    ])
+    
+    # Revert all documents in the folder
+    for document in folder.documents.all():
+        document.forwarded_to_admin_at = None
+        document.admin_notification_seen_at = None
+        document.rank2_reviewed_by = None
+        document.forwarded_to_rank1_at = None
+        document.rank1_notification_seen_at = None
+        document.correction_reviewed_by = None
+        document.status = 'SUBMITTED'
+        document.adviser_status = 'APPROVED'
+        document.adviser_reviewed_by = request.user
+        document.adviser_status_updated_at = timezone.now()
+        document.save(update_fields=[
+            'forwarded_to_admin_at',
+            'admin_notification_seen_at',
+            'rank2_reviewed_by',
+            'forwarded_to_rank1_at',
+            'rank1_notification_seen_at',
+            'correction_reviewed_by',
+            'status',
+            'adviser_status',
+            'adviser_reviewed_by',
+            'adviser_status_updated_at',
+        ])
+    
+    messages.success(request, 'Folder submission cancelled successfully. Returned to organization for review.')
+    return redirect('adviser_dashboard')
+
+
+@login_required
+@require_POST
+def adviser_cancel_document_submission(request, document_id):
+    """Adviser cancels document submission by reverting forwarding status back to organization"""
+    adviser_profile = adviser_profile_for(request.user)
+    if not adviser_profile:
+        return redirect_for_user(request.user)
+
+    document = get_object_or_404(Document, pk=document_id)
+    
+    # Check if document belongs to adviser's organization
+    if document.user.organizationprofile != adviser_profile.organization:
+        messages.error(request, 'You can only cancel submissions for your organization.')
+        return redirect('adviser_dashboard')
+    
+    # Check if document has been forwarded
+    if not document.forwarded_to_admin_at and not document.forwarded_to_rank1_at:
+        messages.error(request, 'This document has not been submitted yet.')
+        return redirect('adviser_dashboard')
+    
+    # Revert document forwarding status
+    document.forwarded_to_admin_at = None
+    document.admin_notification_seen_at = None
+    document.rank2_reviewed_by = None
+    document.forwarded_to_rank1_at = None
+    document.rank1_notification_seen_at = None
+    document.correction_reviewed_by = None
+    document.status = 'SUBMITTED'
+    document.adviser_status = 'APPROVED'
+    document.adviser_reviewed_by = request.user
+    document.adviser_status_updated_at = timezone.now()
+    document.save(update_fields=[
+        'forwarded_to_admin_at',
+        'admin_notification_seen_at',
+        'rank2_reviewed_by',
+        'forwarded_to_rank1_at',
+        'rank1_notification_seen_at',
+        'correction_reviewed_by',
+        'status',
+        'adviser_status',
+        'adviser_reviewed_by',
+        'adviser_status_updated_at',
+    ])
+    
+    # Also revert folder status if this was the only document keeping it forwarded
+    folder = document.folder
+    if folder and folder.forwarded_to_admin_at:
+        # Check if any other documents are still forwarded
+        other_forwarded = folder.documents.exclude(id=document.id).filter(
+            forwarded_to_admin_at__isnull=False
+        ).exists()
+        if not other_forwarded:
+            folder.forwarded_to_admin_at = None
+            folder.admin_notification_seen_at = None
+            folder.rank2_reviewed_by = None
+            folder.forwarded_to_rank1_at = None
+            folder.rank1_notification_seen_at = None
+            folder.save(update_fields=[
+                'forwarded_to_admin_at',
+                'admin_notification_seen_at',
+                'rank2_reviewed_by',
+                'forwarded_to_rank1_at',
+                'rank1_notification_seen_at',
+            ])
+    
+    messages.success(request, 'Document submission cancelled successfully. Returned to organization for review.')
+    return redirect('adviser_dashboard')
+
+
+@login_required
+@require_POST
 def organization_forward_folder(request, folder_id):
     if request.user.is_staff or adviser_profile_for(request.user):
         return redirect_for_user(request.user)

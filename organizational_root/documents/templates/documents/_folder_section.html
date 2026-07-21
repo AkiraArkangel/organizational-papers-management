@@ -131,6 +131,16 @@
                                     </svg>
                                     <span>Add File</span>
                                 </a>
+                                {% if folder.forwarded_to_admin_at or folder.forwarded_to_rank1_at %}
+                                    <form method="POST" action="{% url 'cancel_folder_submission' folder.id %}" class="action-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn warning" onclick="return confirm('Cancel submission and revert folder to draft status?');">Cancel Submission</button>
+                                    </form>
+                                {% endif %}
+                                <form method="POST" action="{% url 'delete_folder' folder.id %}" class="action-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="action-btn danger" onclick="return confirm('Delete this folder and all its files? This action cannot be undone.');">Delete Folder</button>
+                                </form>
                                 <form method="POST" action="{% url 'organization_forward_folder' folder.id %}" class="forward-form">
                                     {% csrf_token %}
                                     <div class="forward-select">
@@ -145,6 +155,12 @@
                                 </form>
                                 <p class="forward-note">Resubmissions automatically go to Advisers first. Use COI/DSAS to skip adviser review.</p>
                             {% elif dashboard_role == 'adviser' %}
+                                {% if folder.forwarded_to_admin_at or folder.forwarded_to_rank1_at %}
+                                    <form method="POST" action="{% url 'adviser_cancel_folder_submission' folder.id %}" class="action-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn warning" onclick="return confirm('Cancel submission and return folder to organization?');">Cancel Submission</button>
+                                    </form>
+                                {% endif %}
                                 {% if folder.is_forwardable_to_admin %}
                                     {% if folder.forwarded_to_admin_at %}
                                         <span class="status-text" style="margin-right: 8px;">New files added</span>
@@ -293,12 +309,24 @@
                                     </div>
                                     <div class="document-actions">
                                         {% if dashboard_role == 'organization' %}
+                                            {% if doc.forwarded_to_admin_at or doc.forwarded_to_rank1_at %}
+                                                <form method="POST" action="{% url 'cancel_document_submission' doc.id %}" class="action-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="action-btn warning" onclick="return confirm('Cancel submission and revert file to draft status?');">Cancel Submission</button>
+                                                </form>
+                                            {% endif %}
                                             <a class="action-btn" href="{% url 'upload' %}?document={{ doc.id }}">Upload Revision</a>
                                             <form method="POST" action="{% url 'delete_document' doc.id %}" class="action-form">
                                                 {% csrf_token %}
-                                                <button type="submit" class="action-btn danger" onclick="return confirm('Cancel and delete this submitted file?');">Cancel/Delete</button>
+                                                <button type="submit" class="action-btn danger" onclick="return confirm('Delete this file? This action cannot be undone.');">Delete</button>
                                             </form>
                                         {% elif dashboard_role == 'adviser' %}
+                                            {% if doc.forwarded_to_admin_at or doc.forwarded_to_rank1_at %}
+                                                <form method="POST" action="{% url 'adviser_cancel_document_submission' doc.id %}" class="action-form">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="action-btn warning" onclick="return confirm('Cancel submission and return file to organization?');">Cancel Submission</button>
+                                                </form>
+                                            {% endif %}
                                             {% if doc.adviser_status == 'APPROVED' and doc.forwarded_to_admin_at is None %}
                                                 <form method="POST" action="{% url 'adviser_forward_document' doc.id %}" class="forward-form">
                                                     {% csrf_token %}
