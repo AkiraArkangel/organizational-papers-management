@@ -1,15 +1,3 @@
 {
-  "builds": [
-    {
-      "src": "wsgi.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "wsgi.py"
-    }
-  ],
   "installCommand": "uv pip install --system -r organizational_root/requirements.txt"
 }
