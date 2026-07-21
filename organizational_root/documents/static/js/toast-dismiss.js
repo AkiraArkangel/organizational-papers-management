@@ -58,9 +58,12 @@
                 
                 // Don't dismiss if it was a drag
                 if (Math.abs(currentX) < dismissDistance) {
-                    // Get the target href and tab before dismissing
-                    const targetHref = toast.getAttribute('href');
+                    // Get the target data attributes
                     const targetTab = toast.getAttribute('data-target-tab');
+                    const documentId = toast.getAttribute('data-document-id');
+                    const section = toast.getAttribute('data-section');
+                    
+                    console.log('Notification clicked:', { targetTab, documentId, section });
                     
                     // Dismiss the notification
                     dismiss();
@@ -72,6 +75,8 @@
                             const targetTabButton = document.querySelector(`[data-tab-target="${targetTab}"]`);
                             const targetTabPanel = document.querySelector(`[data-tab-panel="${targetTab}"]`);
                             
+                            console.log('Tab elements found:', { targetTabButton: !!targetTabButton, targetTabPanel: !!targetTabPanel });
+                            
                             if (targetTabButton && targetTabPanel) {
                                 // Remove active class from all tabs
                                 document.querySelectorAll('.bottom-tab').forEach(tab => tab.classList.remove('is-active'));
@@ -81,20 +86,55 @@
                                 targetTabButton.classList.add('is-active');
                                 targetTabPanel.classList.add('is-active');
                                 
-                                // Scroll to target element if href exists
-                                if (targetHref && targetHref !== '#') {
-                                    const targetElement = document.querySelector(targetHref);
-                                    if (targetElement) {
+                                // Scroll to specific document if documentId is provided
+                                if (documentId) {
+                                    // Try multiple selectors to find the document
+                                    const documentElement = 
+                                        document.querySelector(`[data-document-id="${documentId}"]`) ||
+                                        document.querySelector(`.document-item[data-document-id="${documentId}"]`) ||
+                                        document.querySelector(`.document-row[data-document-id="${documentId}"]`);
+                                    
+                                    console.log('Document element found:', !!documentElement, 'Selector used:', `[data-document-id="${documentId}"]`);
+                                    
+                                    if (documentElement) {
                                         setTimeout(() => {
-                                            // Scroll to the bottom of the target section to show the latest submission
-                                            const rect = targetElement.getBoundingClientRect();
-                                            const scrollTop = window.pageYOffset + rect.bottom - window.innerHeight + 100;
+                                            const rect = documentElement.getBoundingClientRect();
+                                            const scrollTop = window.pageYOffset + rect.top - (window.innerHeight / 2) + (rect.height / 2);
                                             window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-                                        }, 100);
+                                            
+                                            // Highlight the document briefly
+                                            documentElement.style.transition = 'background-color 0.3s ease';
+                                            documentElement.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                                            documentElement.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.3)';
+                                            
+                                            setTimeout(() => {
+                                                documentElement.style.backgroundColor = '';
+                                                documentElement.style.boxShadow = '';
+                                            }, 2500);
+                                        }, 150);
+                                    } else {
+                                        console.warn('Document element not found, falling back to tab panel');
+                                        targetTabPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
+                                } else if (section) {
+                                    // Scroll to section if no specific document
+                                    const sectionElement = document.querySelector(`[data-section="${section}"]`);
+                                    console.log('Section element found:', !!sectionElement);
+                                    if (sectionElement) {
+                                        setTimeout(() => {
+                                            sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }, 150);
+                                    } else {
+                                        targetTabPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                } else {
+                                    // Default scroll to tab panel
+                                    setTimeout(() => {
+                                        targetTabPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }, 150);
                                 }
                             }
-                        }, 250);
+                        }, 300);
                     }
                 }
             });

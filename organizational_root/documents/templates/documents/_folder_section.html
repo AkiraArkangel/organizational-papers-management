@@ -195,7 +195,7 @@
 
                         <div class="documents-list">
                             {% for doc in folder.documents.all %}
-                                <div class="document-item document-row" data-status="{{ doc.status }}">
+                                <div class="document-item document-row" data-status="{{ doc.status }}" data-document-id="{{ doc.id }}">
                                     <div class="document-main">
                                         {% if dashboard_role == 'admin' %}
                                             <span class="doc-org">{{ doc.organization_display_name }}</span>

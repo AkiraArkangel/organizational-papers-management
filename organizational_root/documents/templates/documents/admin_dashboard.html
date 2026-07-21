@@ -79,11 +79,13 @@
             </div>
         </div>
 
-        {% if latest_notification %}
-            <a href="#file-submissions" class="toast-notification panel clickable-notification" role="status" aria-live="polite" data-notification-id="{{ latest_notification.id }}" data-target-tab="file-submissions">
-                <strong>New File Submitted - Go to File Submissions</strong>
-                <span>{{ latest_notification.user.username }}</span>
-            </a>
+        {% if admin_notifications %}
+            {% for notification in admin_notifications %}
+                <a href="#file-submissions" class="toast-notification panel clickable-notification" role="status" aria-live="polite" data-notification-id="{{ notification.id }}" data-target-tab="file-submissions" data-document-id="{{ notification.id }}">
+                    <strong>New File Submitted - {{ notification.title }}</strong>
+                    <span>{{ notification.user.username }}</span>
+                </a>
+            {% endfor %}
         {% endif %}
 
         <!-- Correction Items Section -->

@@ -558,16 +558,18 @@ def dashboard(request):
         'ready_for_printing': documents.filter(status='READY_FOR_PRINTING').count(),
     }
 
-    # Only show notification for documents with status updated by adviser/admin
+    # Show notifications for all documents with status updated by adviser/admin
     # and not already dismissed by the user
-    organization_notification = documents.filter(
+    organization_notifications = documents.filter(
         status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
-    ).order_by('-status_updated_at').first()
+    ).order_by('-status_updated_at')
 
     # Filter out dismissed notifications from session storage
     dismissed_ids = request.session.get('dismissed_notifications', [])
-    if organization_notification and str(organization_notification.id) in dismissed_ids:
-        organization_notification = None
+    organization_notifications = [
+        doc for doc in organization_notifications 
+        if str(doc.id) not in dismissed_ids
+    ]
 
     organization = organization_profile_for(request.user)
     if not organization:
@@ -605,7 +607,7 @@ def dashboard(request):
         'folders': folders,
         'section_groups': build_section_groups(folders, include_empty=True),
         'section_templates': template_queryset(),
-        'organization_notification': organization_notification,
+        'organization_notifications': organization_notifications,
         'signed_copy_form': SignedScannedCopyUploadForm(organization_user=request.user),
         'signed_copies': SignedScannedCopy.objects.filter(user=request.user).select_related('folder'),
         'status_stats': status_stats,
@@ -669,14 +671,25 @@ def add_organization_officer(request):
 
     documents = Document.objects.filter(user=request.user).select_related('user').order_by('uploaded_at')
     folders = SubmissionFolder.objects.filter(user=request.user).prefetch_related('documents')
+    
+    # Show notifications for all documents with status updated by adviser/admin
+    organization_notifications = documents.filter(
+        status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
+    ).order_by('-status_updated_at')
+    
+    # Filter out dismissed notifications from session storage
+    dismissed_ids = request.session.get('dismissed_notifications', [])
+    organization_notifications = [
+        doc for doc in organization_notifications 
+        if str(doc.id) not in dismissed_ids
+    ]
+    
     return render(request, 'documents/dashboard.html', {
         'documents': documents,
         'folders': folders,
         'section_groups': build_section_groups(folders, include_empty=True),
         'section_templates': template_queryset(),
-        'organization_notification': documents.filter(
-            status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
-        ).order_by('-status_updated_at').first(),
+        'organization_notifications': organization_notifications,
         'signed_copy_form': SignedScannedCopyUploadForm(organization_user=request.user),
         'signed_copies': SignedScannedCopy.objects.filter(user=request.user).select_related('folder'),
         **build_overview_context(
@@ -705,14 +718,25 @@ def update_organization_logo(request):
 
     documents = Document.objects.filter(user=request.user).select_related('user').order_by('uploaded_at')
     folders = SubmissionFolder.objects.filter(user=request.user).prefetch_related('documents')
+    
+    # Show notifications for all documents with status updated by adviser/admin
+    organization_notifications = documents.filter(
+        status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
+    ).order_by('-status_updated_at')
+    
+    # Filter out dismissed notifications from session storage
+    dismissed_ids = request.session.get('dismissed_notifications', [])
+    organization_notifications = [
+        doc for doc in organization_notifications 
+        if str(doc.id) not in dismissed_ids
+    ]
+    
     return render(request, 'documents/dashboard.html', {
         'documents': documents,
         'folders': folders,
         'section_groups': build_section_groups(folders, include_empty=True),
         'section_templates': template_queryset(),
-        'organization_notification': documents.filter(
-            status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
-        ).order_by('-status_updated_at').first(),
+        'organization_notifications': organization_notifications,
         'signed_copy_form': SignedScannedCopyUploadForm(organization_user=request.user),
         'signed_copies': SignedScannedCopy.objects.filter(user=request.user).select_related('folder'),
         **build_overview_context(
@@ -741,14 +765,25 @@ def rename_organization(request):
 
     documents = Document.objects.filter(user=request.user).select_related('user').order_by('uploaded_at')
     folders = SubmissionFolder.objects.filter(user=request.user).prefetch_related('documents')
+    
+    # Show notifications for all documents with status updated by adviser/admin
+    organization_notifications = documents.filter(
+        status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
+    ).order_by('-status_updated_at')
+    
+    # Filter out dismissed notifications from session storage
+    dismissed_ids = request.session.get('dismissed_notifications', [])
+    organization_notifications = [
+        doc for doc in organization_notifications 
+        if str(doc.id) not in dismissed_ids
+    ]
+    
     return render(request, 'documents/dashboard.html', {
         'documents': documents,
         'folders': folders,
         'section_groups': build_section_groups(folders, include_empty=True),
         'section_templates': template_queryset(),
-        'organization_notification': documents.filter(
-            status__in=['CORRECTED', 'APPROVED_BY_COI', 'READY_FOR_PRINTING'],
-        ).order_by('-status_updated_at').first(),
+        'organization_notifications': organization_notifications,
         'signed_copy_form': SignedScannedCopyUploadForm(organization_user=request.user),
         'signed_copies': SignedScannedCopy.objects.filter(user=request.user).select_related('folder'),
         **build_overview_context(
@@ -1361,14 +1396,23 @@ def admin_dashboard(request):
         notification_seen_field = 'rank1_notification_seen_at'
         notification_order = '-forwarded_to_rank1_at'
 
-    latest_notification = Document.objects.filter(
+    # Show notifications for all documents matching the filter
+    admin_notifications = Document.objects.filter(
         **notification_filter,
     ).select_related(
         'user',
         'user__organizationprofile',
-    ).order_by(notification_order).first()
-
-    if latest_notification:
+    ).order_by(notification_order)
+    
+    # Filter out dismissed notifications from session storage
+    dismissed_ids = request.session.get('dismissed_notifications', [])
+    admin_notifications = [
+        doc for doc in admin_notifications 
+        if str(doc.id) not in dismissed_ids
+    ]
+    
+    # Mark notifications as seen
+    if admin_notifications:
         Document.objects.filter(
             **notification_filter,
         ).update(**{notification_seen_field: timezone.now()})
@@ -1433,7 +1477,7 @@ def admin_dashboard(request):
         'section_groups': build_section_groups(folders, include_empty=True),
         'organizations': organizations,
         'organizations_without_documents': organizations_without_documents,
-        'latest_notification': latest_notification,
+        'admin_notifications': admin_notifications,
         'status_stats': status_stats,
         'calendar_events': json.dumps(calendar_events),
         'notifications_data': json.dumps(notifications_data),
@@ -1649,10 +1693,18 @@ def adviser_dashboard(request):
         'user__organizationprofile',
     ).prefetch_related('documents').order_by('created_at')
 
-    latest_notification = documents.filter(
+    # Show notifications for all documents with status updated by organization
+    adviser_notifications = documents.filter(
         status__in=['SUBMITTED', 'RESUBMITTED'],
         adviser_status='PENDING',
-    ).order_by('-uploaded_at').first()
+    ).order_by('-uploaded_at')
+    
+    # Filter out dismissed notifications from session storage
+    dismissed_ids = request.session.get('dismissed_notifications', [])
+    adviser_notifications = [
+        doc for doc in adviser_notifications 
+        if str(doc.id) not in dismissed_ids
+    ]
 
     # Calculate status statistics for Adviser
     status_stats = {
@@ -1696,7 +1748,7 @@ def adviser_dashboard(request):
         'documents': documents,
         'folders': folders,
         'section_groups': build_section_groups(folders, include_empty=True),
-        'latest_notification': latest_notification,
+        'adviser_notifications': adviser_notifications,
         'status_stats': status_stats,
         'calendar_events': json.dumps(calendar_events),
         'notifications_data': json.dumps(notifications_data),
