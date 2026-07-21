@@ -1,14 +1,14 @@
 {
   "builds": [
     {
-      "src": "organizational_root/organizational_system/wsgi.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "organizational_root/organizational_system/wsgi.py"
+      "dest": "api/index.py"
     }
   ],
   "installCommand": "uv pip install --system -r organizational_root/requirements.txt"
