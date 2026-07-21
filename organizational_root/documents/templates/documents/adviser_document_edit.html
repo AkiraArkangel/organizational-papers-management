@@ -37,22 +37,22 @@
                 </div>
             </section>
 
-            {% if document.uploaded_file %}
+            {% if document.uploaded_file_data %}
                 <div class="file-actions">
                     <a class="btn" href="{% url 'adviser_view_document' document.id %}" target="_blank" rel="noopener">Open PDF</a>
-                    <a class="btn" href="{% url 'adviser_download_document' document.id %}">Download PDF as DOCX</a>
+                    <a class="btn" href="{% url 'adviser_download_document' document.id %}">Download PDF</a>
                 </div>
             {% endif %}
 
             <div class="review-layout review-layout-no-preview">
                 <section class="document-review-card">
-                    {% if document.uploaded_file %}
+                    {% if document.uploaded_file_data %}
                         <span class="document-review-kicker">Current PDF</span>
-                        <strong>{{ document.uploaded_filename }}</strong>
+                        <strong>{{ document.uploaded_file_name }}</strong>
                         <p>Use Open PDF to review the file in a separate tab, or download it before uploading an edited copy.</p>
                         <div class="document-review-actions">
                             <a class="btn" href="{% url 'adviser_view_document' document.id %}" target="_blank" rel="noopener">Open PDF</a>
-                            <a class="btn" href="{% url 'adviser_download_document' document.id %}">Download PDF as DOCX</a>
+                            <a class="btn" href="{% url 'adviser_download_document' document.id %}">Download PDF</a>
                         </div>
                     {% else %}
                         <p>No PDF file is available for this document.</p>

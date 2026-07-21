@@ -15,7 +15,7 @@
             </div>
             <div class="templates-list">
                 {% for template in group.templates %}
-                    <a class="template-card" href="{{ template.template_file.url }}" download>
+                    <a class="template-card" href="{% url 'serve_template_file' template.id %}" download>
                         <div class="template-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -46,7 +46,7 @@
                         <div class="template-list">
                             {% for template in group.templates %}
                                 <div class="template-item">
-                                    <a class="template-link" href="{{ template.template_file.url }}" download>{{ template.filename }}</a>
+                                    <a class="template-link" href="{% url 'serve_template_file' template.id %}" download>{{ template.filename }}</a>
                                     <form method="POST" enctype="multipart/form-data" class="template-change-form">
                                         {% csrf_token %}
                                         <input type="hidden" name="section" value="{{ group.section }}">
@@ -276,7 +276,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="document-file">
-                                        {% if doc.uploaded_file %}
+                                        {% if doc.uploaded_file_data %}
                                             {% if dashboard_role == 'organization' %}
                                                 <a class="file-link" href="{{ doc.current_file_url }}" download>{{ doc.current_filename }}</a>
                                             {% elif dashboard_role == 'adviser' %}

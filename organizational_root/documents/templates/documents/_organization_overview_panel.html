@@ -2,9 +2,9 @@
     <section class="overview-panel panel organization-profile-panel">
         <div class="overview-heading">
             <div class="organization-identity">
-                <div class="organization-logo-frame {% if not organization.logo %}is-empty{% endif %}">
-                    {% if organization.logo %}
-                        <img src="{{ organization.logo.url }}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
+                <div class="organization-logo-frame {% if not organization.logo_data %}is-empty{% endif %}">
+                    {% if organization.logo_data %}
+                        <img src="{% url 'serve_organization_logo' organization.id %}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
                     {% else %}
                         <span>No Logo</span>
                     {% endif %}
@@ -12,10 +12,10 @@
                         <form method="POST" action="{% url 'update_organization_logo' %}" enctype="multipart/form-data" class="photo-update-form">
                             {% csrf_token %}
                             <label class="photo-upload-trigger">
-                                <span>{% if organization.logo %}Replace{% else %}Add Logo{% endif %}</span>
-                                <input type="file" name="logo" accept="image/*" required {% if organization.logo %}onchange="this.form.submit();"{% endif %}>
+                                <span>{% if organization.logo_data %}Replace{% else %}Add Logo{% endif %}</span>
+                                <input type="file" name="logo" accept="image/*" required {% if organization.logo_data %}onchange="this.form.submit();"{% endif %}>
                             </label>
-                            {% if not organization.logo %}
+                            {% if not organization.logo_data %}
                                 <button type="submit" class="photo-save-btn">Save</button>
                             {% endif %}
                         </form>
@@ -40,10 +40,10 @@
         <div class="officer-grid">
             {% for officer in officers %}
                 <div class="officer-card">
-                    <div class="officer-photo-section {% if not officer.photo %}is-empty{% endif %}">
-                        {% if officer.photo %}
-                            <div class="photo-link" data-photo-url="{{ officer.photo.url }}?v={{ officer.photo_updated_at|date:'U' }}">
-                                <img src="{{ officer.photo.url }}?v={{ officer.photo_updated_at|date:'U' }}" alt="{{ officer.name }}">
+                    <div class="officer-photo-section {% if not officer.photo_data %}is-empty{% endif %}">
+                        {% if officer.photo_data %}
+                            <div class="photo-link" data-photo-url="{% url 'serve_officer_photo' officer.id %}?v={{ officer.photo_updated_at|date:'U' }}">
+                                <img src="{% url 'serve_officer_photo' officer.id %}?v={{ officer.photo_updated_at|date:'U' }}" alt="{{ officer.name }}">
                             </div>
                         {% else %}
                             <div class="photo-placeholder">

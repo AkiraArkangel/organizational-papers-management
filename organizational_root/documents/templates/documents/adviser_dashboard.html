@@ -12,8 +12,8 @@
     <main class="page">
         <header class="topbar">
             <a class="brand" href="{% url 'adviser_dashboard' %}">
-                {% if adviser_profile.organization.logo %}
-                    <img class="brand-logo" src="{{ adviser_profile.organization.logo.url }}?v={{ adviser_profile.organization.logo_updated_at|date:'U' }}" alt="{{ adviser_profile.organization.organization_name }} logo">
+                {% if adviser_profile.organization.logo_data %}
+                    <img class="brand-logo" src="{% url 'serve_organization_logo' adviser_profile.organization.id %}?v={{ adviser_profile.organization.logo_updated_at|date:'U' }}" alt="{{ adviser_profile.organization.organization_name }} logo">
                 {% else %}
                     <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
                 {% endif %}

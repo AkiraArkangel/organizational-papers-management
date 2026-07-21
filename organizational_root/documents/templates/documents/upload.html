@@ -36,7 +36,7 @@
             {% if section_templates %}
                 <div class="template-list compact-template-list">
                     {% for template in section_templates %}
-                        <a class="file-link" href="{{ template.template_file.url }}" download>
+                        <a class="file-link" href="{% url 'serve_template_file' template.id %}" download>
                             {{ template.get_section_display }}: {{ template.filename }}
                         </a>
                     {% endfor %}

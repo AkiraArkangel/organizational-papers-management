@@ -12,8 +12,8 @@
     <main class="page">
         <header class="topbar">
             <a class="brand" href="{% url submissions_url %}">
-                {% if organization.logo %}
-                    <img class="brand-logo" src="{{ organization.logo.url }}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
+                {% if organization.logo_data %}
+                    <img class="brand-logo" src="{% url 'serve_organization_logo' organization.id %}?v={{ organization.logo_updated_at|date:'U' }}" alt="{{ organization.organization_name }} logo">
                 {% else %}
                     <img class="brand-logo" src="{% static 'images/SNSU Logo (No Background).png' %}" alt="OrgSys logo">
                 {% endif %}

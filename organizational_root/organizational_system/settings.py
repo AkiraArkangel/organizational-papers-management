@@ -132,9 +132,8 @@ USE_I18N = True
 USE_TZ = True
 
 # Media files configuration
-# Use local filesystem for development
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Files are now stored as binary data in PostgreSQL - no filesystem storage needed
+# MEDIA_URL and MEDIA_ROOT removed as files are served via custom views
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'

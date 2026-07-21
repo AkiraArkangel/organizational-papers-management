@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.utils import timezone
 from .converters import ConversionError, convert_uploaded_docx_to_pdf
+from .file_utils import extract_file_metadata, get_safe_filename
 from .models import (
     AdminProfile,
     AdviserProfile,
@@ -165,6 +166,7 @@ class DocumentUploadForm(forms.ModelForm):
         required=False,
         help_text='Name the folder the Activity Name or Report that you will be submitting.',
     )
+    uploaded_file = forms.FileField(label='Upload PDF file', required=True)
 
     def __init__(self, *args, locked_section=None, existing_folder=None, resubmitting=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -183,7 +185,7 @@ class DocumentUploadForm(forms.ModelForm):
 
     class Meta:
         model = Document
-        fields = ['section', 'folder_name', 'uploaded_file']
+        fields = ['section', 'folder_name']
 
     def clean_folder_name(self):
         folder_name = self.cleaned_data.get('folder_name', '').strip()
@@ -198,6 +200,28 @@ class DocumentUploadForm(forms.ModelForm):
         if not uploaded_file.name.lower().endswith('.pdf'):
             raise forms.ValidationError('Upload a PDF file.')
         return uploaded_file
+
+    def save(self, commit=True):
+        document = super().save(commit=False)
+        
+        # Handle binary file upload
+        uploaded_file = self.cleaned_data.get('uploaded_file')
+        if uploaded_file:
+            try:
+                file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                    uploaded_file, max_size_mb=10
+                )
+                document.uploaded_file_data = file_data
+                document.uploaded_file_name = get_safe_filename(filename)
+                document.uploaded_file_content_type = content_type
+                document.uploaded_file_size = file_size
+                document.uploaded_file_checksum = checksum
+            except Exception as e:
+                raise forms.ValidationError(f'Error processing file: {str(e)}')
+        
+        if commit:
+            document.save()
+        return document
 
 
 class AdviserDocumentForm(forms.ModelForm):
@@ -258,9 +282,23 @@ class AdviserDocumentForm(forms.ModelForm):
             document.correction_checklist_state = {}
 
         if review_file:
-            if document.uploaded_file:
-                document.uploaded_file.delete(save=False)
-            document.uploaded_file = review_file
+            # Clear old binary data
+            document.uploaded_file_data = None
+            document.uploaded_file_name = None
+            document.uploaded_file_content_type = None
+            document.uploaded_file_size = None
+            document.uploaded_file_checksum = None
+            
+            # Store new binary data
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                review_file, max_size_mb=10
+            )
+            document.uploaded_file_data = file_data
+            document.uploaded_file_name = get_safe_filename(filename)
+            document.uploaded_file_content_type = content_type
+            document.uploaded_file_size = file_size
+            document.uploaded_file_checksum = checksum
+            
             document.status = 'CORRECTED'
             document.adviser_status = 'CORRECTED'
             document.adviser_reviewed_by = adviser_user
@@ -287,15 +325,36 @@ class AdviserDocumentForm(forms.ModelForm):
 
 
 class FileSectionTemplateForm(forms.ModelForm):
+    template_file = forms.FileField(label='Upload PDF template', required=True)
+
     class Meta:
         model = FileSectionTemplate
-        fields = ['section', 'template_file']
+        fields = ['section']
 
     def clean_template_file(self):
         template_file = self.cleaned_data['template_file']
         if not template_file.name.lower().endswith('.pdf'):
             raise forms.ValidationError('Upload a PDF template.')
         return template_file
+
+    def save(self, commit=True):
+        template = super().save(commit=False)
+        
+        # Handle binary file upload
+        template_file = self.cleaned_data.get('template_file')
+        if template_file:
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                template_file, max_size_mb=10
+            )
+            template.template_file_data = file_data
+            template.template_file_name = get_safe_filename(filename)
+            template.template_file_content_type = content_type
+            template.template_file_size = file_size
+            template.template_file_checksum = checksum
+        
+        if commit:
+            template.save()
+        return template
 
 
 class AdminDocumentForm(forms.ModelForm):
@@ -368,9 +427,23 @@ class AdminDocumentForm(forms.ModelForm):
             document.correction_checklist_state = {}
 
         if review_file:
-            if document.uploaded_file:
-                document.uploaded_file.delete(save=False)
-            document.uploaded_file = review_file
+            # Clear old binary data
+            document.uploaded_file_data = None
+            document.uploaded_file_name = None
+            document.uploaded_file_content_type = None
+            document.uploaded_file_size = None
+            document.uploaded_file_checksum = None
+            
+            # Store new binary data
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                review_file, max_size_mb=10
+            )
+            document.uploaded_file_data = file_data
+            document.uploaded_file_name = get_safe_filename(filename)
+            document.uploaded_file_content_type = content_type
+            document.uploaded_file_size = file_size
+            document.uploaded_file_checksum = checksum
+            
             document.status = 'CORRECTED'
             document.correction_reviewed_by = reviewed_by
         elif has_correction_notes and notes_changed:
@@ -402,10 +475,12 @@ class SignedScannedCopyUploadForm(forms.ModelForm):
         label='Forward to DSAS account',
         required=False,
     )
+    # Temporary field for file upload - will be removed when forms are updated
+    signed_file = forms.FileField(label='Upload signed copy', required=True)
 
     class Meta:
         model = SignedScannedCopy
-        fields = ['folder', 'title', 'signed_file']
+        fields = ['folder', 'title']  # Temporarily exclude signed_file
         labels = {
             'folder': 'Related folder',
             'title': 'Reference title',
@@ -429,15 +504,35 @@ class SignedScannedCopyUploadForm(forms.ModelForm):
             raise forms.ValidationError('Upload a PDF, JPG, or PNG scanned copy.')
         return signed_file
 
+    def save(self, commit=True):
+        signed_copy = super().save(commit=False)
+        
+        # Handle binary file upload
+        signed_file = self.cleaned_data.get('signed_file')
+        if signed_file:
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                signed_file, max_size_mb=10
+            )
+            signed_copy.signed_file_data = file_data
+            signed_copy.signed_file_name = get_safe_filename(filename)
+            signed_copy.signed_file_content_type = content_type
+            signed_copy.signed_file_size = file_size
+            signed_copy.signed_file_checksum = checksum
+        
+        if commit:
+            signed_copy.save()
+        return signed_copy
+
 
 class OrganizationOfficerForm(forms.ModelForm):
+    photo = forms.FileField(label='Officer photo', required=False)
+
     class Meta:
         model = OrganizationOfficer
-        fields = ['position', 'name', 'photo']
+        fields = ['position', 'name']
         labels = {
             'position': 'Position',
             'name': 'Officer name',
-            'photo': 'Officer photo',
         }
         help_texts = {
             'photo': 'Optional. You can add a photo later.',
@@ -451,6 +546,27 @@ class OrganizationOfficerForm(forms.ModelForm):
                 raise forms.ValidationError('Upload an image file: JPG, PNG, GIF, or WEBP.')
         return photo
 
+    def save(self, commit=True):
+        officer = super().save(commit=False)
+        
+        # Handle binary file upload
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                photo, max_size_mb=10
+            )
+            officer.photo_data = file_data
+            officer.photo_name = get_safe_filename(filename)
+            officer.photo_content_type = content_type
+            officer.photo_size = file_size
+            officer.photo_checksum = checksum
+            officer.photo_uploaded_by = self.instance.organization.user if self.instance.organization else None
+            officer.photo_uploaded_at = timezone.now()
+        
+        if commit:
+            officer.save()
+        return officer
+
 
 class OrganizationOfficerDetailsForm(forms.ModelForm):
     class Meta:
@@ -463,9 +579,11 @@ class OrganizationOfficerDetailsForm(forms.ModelForm):
 
 
 class OrganizationLogoForm(forms.ModelForm):
+    logo = forms.FileField(label='Organization logo', required=True)
+
     class Meta:
         model = OrganizationProfile
-        fields = ['logo']
+        fields = []
         labels = {
             'logo': 'Organization logo',
         }
@@ -481,6 +599,27 @@ class OrganizationLogoForm(forms.ModelForm):
 
         return logo
 
+    def save(self, commit=True):
+        organization = super().save(commit=False)
+        
+        # Handle binary file upload
+        logo = self.cleaned_data.get('logo')
+        if logo:
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                logo, max_size_mb=10
+            )
+            organization.logo_data = file_data
+            organization.logo_name = get_safe_filename(filename)
+            organization.logo_content_type = content_type
+            organization.logo_size = file_size
+            organization.logo_checksum = checksum
+            organization.logo_uploaded_by = organization.user
+            organization.logo_uploaded_at = timezone.now()
+        
+        if commit:
+            organization.save()
+        return organization
+
 
 class OrganizationNameForm(forms.ModelForm):
     class Meta:
@@ -492,9 +631,11 @@ class OrganizationNameForm(forms.ModelForm):
 
 
 class OfficerPhotoForm(forms.ModelForm):
+    photo = forms.FileField(label='Officer photo', required=True)
+
     class Meta:
         model = OrganizationOfficer
-        fields = ['photo']
+        fields = []
 
     def clean_photo(self):
         photo = self.cleaned_data.get('photo')
@@ -506,6 +647,27 @@ class OfficerPhotoForm(forms.ModelForm):
             raise forms.ValidationError('Upload an image file: JPG, PNG, GIF, or WEBP.')
 
         return photo
+
+    def save(self, commit=True):
+        officer = super().save(commit=False)
+        
+        # Handle binary file upload
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                photo, max_size_mb=10
+            )
+            officer.photo_data = file_data
+            officer.photo_name = get_safe_filename(filename)
+            officer.photo_content_type = content_type
+            officer.photo_size = file_size
+            officer.photo_checksum = checksum
+            officer.photo_uploaded_by = officer.organization.user if officer.organization else None
+            officer.photo_uploaded_at = timezone.now()
+        
+        if commit:
+            officer.save()
+        return officer
 
 
 class CorrectionItemForm(forms.ModelForm):

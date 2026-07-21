@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from pathlib import Path
+from .file_utils import calculate_sha256_checksum, get_safe_filename
 
 
 class CorrectionItem(models.Model):
@@ -88,8 +89,17 @@ class Notification(models.Model):
 class OrganizationProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     organization_name = models.CharField(max_length=255)
-    logo = models.FileField(upload_to='organization_logos/', null=True, blank=True)
+    
+    # Binary file storage for logo
+    logo_data = models.BinaryField(null=True, blank=True)
+    logo_name = models.CharField(max_length=255, null=True, blank=True)
+    logo_content_type = models.CharField(max_length=100, null=True, blank=True)
+    logo_size = models.BigIntegerField(null=True, blank=True)
+    logo_checksum = models.CharField(max_length=64, null=True, blank=True)
+    logo_uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_logos')
+    logo_uploaded_at = models.DateTimeField(null=True, blank=True)
     logo_updated_at = models.DateTimeField(null=True, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -97,7 +107,7 @@ class OrganizationProfile(models.Model):
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get('update_fields')
-        if self.logo and (update_fields is None or 'logo' in update_fields):
+        if self.logo_data and (update_fields is None or 'logo_data' in update_fields):
             self.logo_updated_at = timezone.now()
             if update_fields is not None:
                 kwargs['update_fields'] = set(update_fields) | {'logo_updated_at'}
@@ -112,8 +122,17 @@ class OrganizationOfficer(models.Model):
     )
     position = models.CharField(max_length=120)
     name = models.CharField(max_length=180)
-    photo = models.FileField(upload_to='officers/', null=True, blank=True)
+    
+    # Binary file storage for photo
+    photo_data = models.BinaryField(null=True, blank=True)
+    photo_name = models.CharField(max_length=255, null=True, blank=True)
+    photo_content_type = models.CharField(max_length=100, null=True, blank=True)
+    photo_size = models.BigIntegerField(null=True, blank=True)
+    photo_checksum = models.CharField(max_length=64, null=True, blank=True)
+    photo_uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_officer_photos')
+    photo_uploaded_at = models.DateTimeField(null=True, blank=True)
     photo_updated_at = models.DateTimeField(null=True, blank=True)
+    
     display_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -125,7 +144,7 @@ class OrganizationOfficer(models.Model):
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get('update_fields')
-        if self.photo and (update_fields is None or 'photo' in update_fields):
+        if self.photo_data and (update_fields is None or 'photo_data' in update_fields):
             self.photo_updated_at = timezone.now()
             if update_fields is not None:
                 kwargs['update_fields'] = set(update_fields) | {'photo_updated_at'}
@@ -196,8 +215,23 @@ class Document(models.Model):
         default='ORGANIZATION_ACTIVITIES',
     )
     title = models.CharField(max_length=255)
-    uploaded_file = models.FileField(upload_to='uploads/')
-    corrected_file = models.FileField(upload_to='corrected/', null=True, blank=True)
+    
+    # Binary file storage for uploaded file
+    uploaded_file_data = models.BinaryField(null=True, blank=True)
+    uploaded_file_name = models.CharField(max_length=255, null=True, blank=True)
+    uploaded_file_content_type = models.CharField(max_length=100, null=True, blank=True)
+    uploaded_file_size = models.BigIntegerField(null=True, blank=True)
+    uploaded_file_checksum = models.CharField(max_length=64, null=True, blank=True)
+    
+    # Binary file storage for corrected file
+    corrected_file_data = models.BinaryField(null=True, blank=True)
+    corrected_file_name = models.CharField(max_length=255, null=True, blank=True)
+    corrected_file_content_type = models.CharField(max_length=100, null=True, blank=True)
+    corrected_file_size = models.BigIntegerField(null=True, blank=True)
+    corrected_file_checksum = models.CharField(max_length=64, null=True, blank=True)
+    corrected_file_uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_corrected_files')
+    corrected_file_uploaded_at = models.DateTimeField(null=True, blank=True)
+    
     correction_notes = models.TextField(blank=True)
     correction_checklist_state = models.JSONField(default=dict, blank=True)
 
@@ -252,16 +286,20 @@ class Document(models.Model):
         return 'No Organization'
 
     def uploaded_filename(self):
-        return Path(self.uploaded_file.name).name
+        return self.uploaded_file_name or 'No file'
 
     def corrected_filename(self):
-        return Path(self.corrected_file.name).name
+        return self.corrected_file_name or 'No file'
 
     def current_filename(self):
         return self.uploaded_filename()
 
     def current_file_url(self):
-        return self.uploaded_file.url
+        # URL for serving uploaded file from binary storage
+        if self.uploaded_file_data:
+            from django.urls import reverse
+            return reverse('serve_uploaded_file', args=[self.id])
+        return ''
 
     def current_file_label(self):
         return 'Uploaded File'
@@ -596,7 +634,14 @@ class FileSectionTemplate(models.Model):
         max_length=40,
         choices=Document.SECTION_CHOICES,
     )
-    template_file = models.FileField(upload_to='templates/')
+    
+    # Binary file storage for template file
+    template_file_data = models.BinaryField(null=True, blank=True)
+    template_file_name = models.CharField(max_length=255, null=True, blank=True)
+    template_file_content_type = models.CharField(max_length=100, null=True, blank=True)
+    template_file_size = models.BigIntegerField(null=True, blank=True)
+    template_file_checksum = models.CharField(max_length=64, null=True, blank=True)
+    
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     uploaded_at = models.DateTimeField(auto_now=True)
 
@@ -607,7 +652,7 @@ class FileSectionTemplate(models.Model):
         return self.get_section_display()
 
     def filename(self):
-        return Path(self.template_file.name).name
+        return self.template_file_name or 'No file'
 
 
 class SignedScannedCopy(models.Model):
@@ -620,7 +665,14 @@ class SignedScannedCopy(models.Model):
         related_name='signed_copies',
     )
     title = models.CharField(max_length=255)
-    signed_file = models.FileField(upload_to='signed_copies/')
+    
+    # Binary file storage for signed file
+    signed_file_data = models.BinaryField(null=True, blank=True)
+    signed_file_name = models.CharField(max_length=255, null=True, blank=True)
+    signed_file_content_type = models.CharField(max_length=100, null=True, blank=True)
+    signed_file_size = models.BigIntegerField(null=True, blank=True)
+    signed_file_checksum = models.CharField(max_length=64, null=True, blank=True)
+    
     uploaded_at = models.DateTimeField(auto_now_add=True)
     forwarded_to_adviser_at = models.DateTimeField(null=True, blank=True)
     forwarded_to_coi_at = models.DateTimeField(null=True, blank=True)
@@ -633,7 +685,7 @@ class SignedScannedCopy(models.Model):
         return self.title
 
     def filename(self):
-        return Path(self.signed_file.name).name
+        return self.signed_file_name or 'No file'
 
     def organization_display_name(self):
         profile = getattr(self.user, 'organizationprofile', None)

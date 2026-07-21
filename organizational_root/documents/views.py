@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.db.models import Count, Max, Q
 from django.urls import reverse
 from .converters import ConversionError, convert_pdf_path_to_docx, docx_download_name
+from .file_utils import create_file_response
 from .forms import (
     AccountRegisterForm,
     AdminDocumentForm,
@@ -217,10 +218,20 @@ def organization_overview_tab_redirect():
 
 
 def delete_document_files(document):
-    if document.uploaded_file:
-        document.uploaded_file.delete(save=False)
-    if document.corrected_file:
-        document.corrected_file.delete(save=False)
+    # Clear binary file data instead of deleting FileField
+    document.uploaded_file_data = None
+    document.uploaded_file_name = None
+    document.uploaded_file_content_type = None
+    document.uploaded_file_size = None
+    document.uploaded_file_checksum = None
+    
+    document.corrected_file_data = None
+    document.corrected_file_name = None
+    document.corrected_file_content_type = None
+    document.corrected_file_size = None
+    document.corrected_file_checksum = None
+    document.corrected_file_uploaded_by = None
+    document.corrected_file_uploaded_at = None
 
 
 def handle_template_upload(request):
@@ -250,18 +261,40 @@ def handle_template_upload(request):
     template_id = request.POST.get('template_id')
     if template_id:
         template = get_object_or_404(FileSectionTemplate, pk=template_id, section=section)
-        if template.template_file:
-            template.template_file.delete(save=False)
-        template.template_file = template_files[0]
+        # Clear old binary data
+        template.template_file_data = None
+        template.template_file_name = None
+        template.template_file_content_type = None
+        template.template_file_size = None
+        template.template_file_checksum = None
+        
+        # Store new binary data
+        from .file_utils import extract_file_metadata, get_safe_filename
+        file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+            template_files[0], max_size_mb=10
+        )
+        template.template_file_data = file_data
+        template.template_file_name = get_safe_filename(filename)
+        template.template_file_content_type = content_type
+        template.template_file_size = file_size
+        template.template_file_checksum = checksum
         template.uploaded_by = request.user
         template.save()
         messages.success(request, 'Template/sample file changed.')
         return True
 
     for template_file in template_files:
+        from .file_utils import extract_file_metadata, get_safe_filename
+        file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+            template_file, max_size_mb=10
+        )
         FileSectionTemplate.objects.create(
             section=section,
-            template_file=template_file,
+            template_file_data=file_data,
+            template_file_name=get_safe_filename(filename),
+            template_file_content_type=content_type,
+            template_file_size=file_size,
+            template_file_checksum=checksum,
             uploaded_by=request.user,
         )
 
@@ -283,34 +316,61 @@ def delete_organization_user(user):
         for document in Document.objects.filter(user=user):
             delete_document_files(document)
         for signed_copy in SignedScannedCopy.objects.filter(user=user):
-            if signed_copy.signed_file:
-                signed_copy.signed_file.delete(save=False)
+            # Clear binary file data
+            signed_copy.signed_file_data = None
+            signed_copy.signed_file_name = None
+            signed_copy.signed_file_content_type = None
+            signed_copy.signed_file_size = None
+            signed_copy.signed_file_checksum = None
+            signed_copy.save()
         for officer in organization.officers.all():
-            if officer.photo:
-                officer.photo.delete(save=False)
-        if organization.logo:
-            organization.logo.delete(save=False)
+            # Clear binary file data
+            officer.photo_data = None
+            officer.photo_name = None
+            officer.photo_content_type = None
+            officer.photo_size = None
+            officer.photo_checksum = None
+            officer.photo_uploaded_by = None
+            officer.photo_uploaded_at = None
+            officer.save()
+        if organization.logo_data:
+            # Clear binary file data
+            organization.logo_data = None
+            organization.logo_name = None
+            organization.logo_content_type = None
+            organization.logo_size = None
+            organization.logo_checksum = None
+            organization.logo_uploaded_by = None
+            organization.logo_uploaded_at = None
+            organization.save()
         for adviser_user in adviser_users:
             delete_adviser_user(adviser_user)
     user.delete()
 
 
 def document_docx_response(document):
+    """Convert PDF to DOCX and return HTTP response"""
+    from .converters import convert_pdf_binary_to_docx, ConversionError
+    
+    if not document.uploaded_file_data:
+        return None, 'No PDF file available for conversion.'
+    
     try:
-        converted_path = convert_pdf_path_to_docx(document.uploaded_file.path)
-    except ConversionError as error:
-        return None, str(error)
-
-    with converted_path.open('rb') as converted_file:
+        docx_data, docx_filename = convert_pdf_binary_to_docx(
+            document.uploaded_file_data,
+            document.uploaded_file_name or 'document.pdf'
+        )
+        
         response = HttpResponse(
-            converted_file.read(),
+            docx_data,
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         )
-    converted_path.unlink(missing_ok=True)
-    response['Content-Disposition'] = (
-        f'attachment; filename="{docx_download_name(document.uploaded_filename())}"'
-    )
-    return response, None
+        response['Content-Disposition'] = f'attachment; filename="{docx_filename}"'
+        return response, None
+    except ConversionError as e:
+        return None, str(e)
+    except Exception as e:
+        return None, f'Error converting PDF to DOCX: {str(e)}'
 
 
 def register_account(request):
@@ -360,13 +420,22 @@ def upload_document(request):
             uploaded_file = form.cleaned_data['uploaded_file']
 
             if resubmit_document:
-                if resubmit_document.uploaded_file:
-                    resubmit_document.uploaded_file.delete(save=False)
-                if resubmit_document.corrected_file:
-                    resubmit_document.corrected_file.delete(save=False)
+                # Clear old binary data
+                resubmit_document.uploaded_file_data = None
+                resubmit_document.uploaded_file_name = None
+                resubmit_document.uploaded_file_content_type = None
+                resubmit_document.uploaded_file_size = None
+                resubmit_document.uploaded_file_checksum = None
+                
+                resubmit_document.corrected_file_data = None
+                resubmit_document.corrected_file_name = None
+                resubmit_document.corrected_file_content_type = None
+                resubmit_document.corrected_file_size = None
+                resubmit_document.corrected_file_checksum = None
+                resubmit_document.corrected_file_uploaded_by = None
+                resubmit_document.corrected_file_uploaded_at = None
 
-                resubmit_document.uploaded_file = uploaded_file
-                resubmit_document.corrected_file = None
+                # Form will handle binary data storage in save()
                 resubmit_document.correction_checklist_state = {}
                 resubmit_document.correction_reviewed_by = None
                 resubmit_document.status = 'RESUBMITTED'
@@ -379,23 +448,26 @@ def upload_document(request):
                 resubmit_document.forwarded_to_rank1_at = None
                 resubmit_document.rank1_notification_seen_at = None
                 resubmit_document.uploaded_at = timezone.now()
-                resubmit_document.save(update_fields=[
-                    'uploaded_file',
-                    'corrected_file',
-                    'correction_checklist_state',
-                    'correction_reviewed_by',
-                    'status',
-                    'adviser_status',
-                    'adviser_reviewed_by',
-                    'adviser_status_updated_at',
-                    'forwarded_to_admin_at',
-                    'admin_notification_seen_at',
-                    'rank2_reviewed_by',
-                    'forwarded_to_rank1_at',
-                    'rank1_notification_seen_at',
-                    'uploaded_at',
-                    'status_updated_at',
-                ])
+                
+                # Form will handle binary data storage
+                form = DocumentUploadForm(
+                    request.POST,
+                    request.FILES,
+                    instance=resubmit_document,
+                    locked_section=locked_section,
+                    existing_folder=existing_folder,
+                    resubmitting=True,
+                )
+                if form.is_valid():
+                    form.save()
+                else:
+                    messages.error(request, 'Error updating document.')
+                    return render(request, 'documents/upload.html', {
+                        'form': form,
+                        'locked_section': locked_section,
+                        'existing_folder': existing_folder,
+                        'resubmitting': True,
+                    })
             else:
                 folder = existing_folder
                 if folder is None:
@@ -405,12 +477,24 @@ def upload_document(request):
                         name=form.cleaned_data['folder_name'],
                     )
 
+                # Extract binary data before form save
+                from .file_utils import extract_file_metadata, get_safe_filename
+                file_data, filename, content_type, file_size, checksum = extract_file_metadata(
+                    uploaded_file, max_size_mb=10
+                )
+
                 doc = form.save(commit=False)
                 doc.user = request.user
                 doc.folder = folder
                 doc.section = folder.section
                 doc.title = uploaded_file.name
                 doc.status = 'SUBMITTED'
+                # Set binary data directly
+                doc.uploaded_file_data = file_data
+                doc.uploaded_file_name = get_safe_filename(filename)
+                doc.uploaded_file_content_type = content_type
+                doc.uploaded_file_size = file_size
+                doc.uploaded_file_checksum = checksum
                 doc.save()
 
                 if folder.forwarded_to_admin_at:
@@ -615,9 +699,7 @@ def update_organization_logo(request):
     form = OrganizationLogoForm(request.POST, request.FILES, instance=organization)
 
     if form.is_valid():
-        new_logo = form.cleaned_data['logo']
-        if organization.logo and organization.logo.name != new_logo.name:
-            organization.logo.delete(save=False)
+        # Form will handle binary data storage in save()
         form.save()
         return organization_overview_tab_redirect()
 
@@ -728,8 +810,7 @@ def delete_organization_officer(request, officer_id):
 
     organization = get_object_or_404(OrganizationProfile, user=request.user)
     officer = get_object_or_404(OrganizationOfficer, pk=officer_id, organization=organization)
-    if officer.photo:
-        officer.photo.delete(save=False)
+    # Binary data will be automatically deleted when officer is deleted
     officer.delete()
 
     for index, item in enumerate(organization.officers.all()):
@@ -767,9 +848,7 @@ def update_organization_officer_photo(request, officer_id):
     form = OfficerPhotoForm(request.POST, request.FILES, instance=officer)
 
     if form.is_valid():
-        new_photo = form.cleaned_data['photo']
-        if officer.photo and officer.photo.name != new_photo.name:
-            officer.photo.delete(save=False)
+        # Form will handle binary data storage in save()
         form.save()
 
     return organization_overview_tab_redirect()
@@ -1241,12 +1320,16 @@ def admin_view_document(request, document_id):
         return redirect_for_user(request.user)
 
     document = get_object_or_404(admin_document_queryset_for(request.user), pk=document_id)
-    return FileResponse(
-        document.uploaded_file.open('rb'),
-        as_attachment=False,
-        filename=document.uploaded_filename(),
-        content_type='application/pdf',
+    if not document.uploaded_file_data:
+        messages.error(request, 'No file available for this document.')
+        return redirect('admin_dashboard')
+    
+    response = HttpResponse(
+        document.uploaded_file_data,
+        content_type=document.uploaded_file_content_type or 'application/pdf',
     )
+    response['Content-Disposition'] = f'inline; filename="{document.uploaded_file_name}"'
+    return response
 
 
 @login_required
@@ -1255,10 +1338,15 @@ def admin_download_document(request, document_id):
         return redirect_for_user(request.user)
 
     document = get_object_or_404(admin_document_queryset_for(request.user), pk=document_id)
-    response, error = document_docx_response(document)
-    if error:
-        messages.error(request, error)
+    if not document.uploaded_file_data:
+        messages.error(request, 'No file available for this document.')
         return redirect('admin_edit_document', document_id=document.id)
+    
+    response = HttpResponse(
+        document.uploaded_file_data,
+        content_type=document.uploaded_file_content_type or 'application/pdf',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{document.uploaded_file_name}"'
     return response
 
 
@@ -1557,12 +1645,16 @@ def adviser_view_document(request, document_id):
         return redirect('dashboard')
 
     document = get_object_or_404(Document, pk=document_id, user=adviser_profile.organization.user)
-    return FileResponse(
-        document.uploaded_file.open('rb'),
-        as_attachment=False,
-        filename=document.uploaded_filename(),
-        content_type='application/pdf',
+    if not document.uploaded_file_data:
+        messages.error(request, 'No file available for this document.')
+        return redirect('adviser_dashboard')
+    
+    response = HttpResponse(
+        document.uploaded_file_data,
+        content_type=document.uploaded_file_content_type or 'application/pdf',
     )
+    response['Content-Disposition'] = f'inline; filename="{document.uploaded_file_name}"'
+    return response
 
 
 @login_required
@@ -1574,10 +1666,15 @@ def adviser_download_document(request, document_id):
         return redirect('dashboard')
 
     document = get_object_or_404(Document, pk=document_id, user=adviser_profile.organization.user)
-    response, error = document_docx_response(document)
-    if error:
-        messages.error(request, error)
+    if not document.uploaded_file_data:
+        messages.error(request, 'No file available for this document.')
         return redirect('adviser_edit_document', document_id=document.id)
+    
+    response = HttpResponse(
+        document.uploaded_file_data,
+        content_type=document.uploaded_file_content_type or 'application/pdf',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{document.uploaded_file_name}"'
     return response
 
 
@@ -1684,6 +1781,62 @@ def edit_correction_item(request, correction_id):
 
 
 @login_required
+def serve_organization_logo(request, organization_id):
+    organization = get_object_or_404(OrganizationProfile, pk=organization_id)
+    if not organization.logo_data:
+        return HttpResponse(status=404)
+    
+    response = HttpResponse(
+        organization.logo_data,
+        content_type=organization.logo_content_type or 'image/jpeg',
+    )
+    response['Content-Disposition'] = f'inline; filename="{organization.logo_name}"'
+    return response
+
+
+@login_required
+def serve_officer_photo(request, officer_id):
+    officer = get_object_or_404(OrganizationOfficer, pk=officer_id)
+    if not officer.photo_data:
+        return HttpResponse(status=404)
+    
+    response = HttpResponse(
+        officer.photo_data,
+        content_type=officer.photo_content_type or 'image/jpeg',
+    )
+    response['Content-Disposition'] = f'inline; filename="{officer.photo_name}"'
+    return response
+
+
+@login_required
+def serve_template_file(request, template_id):
+    template = get_object_or_404(FileSectionTemplate, pk=template_id)
+    if not template.template_file_data:
+        return HttpResponse(status=404)
+    
+    response = HttpResponse(
+        template.template_file_data,
+        content_type=template.template_file_content_type or 'application/pdf',
+    )
+    response['Content-Disposition'] = f'inline; filename="{template.template_file_name}"'
+    return response
+
+
+@login_required
+def serve_signed_copy(request, signed_copy_id):
+    signed_copy = get_object_or_404(SignedScannedCopy, pk=signed_copy_id)
+    if not signed_copy.signed_file_data:
+        return HttpResponse(status=404)
+    
+    response = HttpResponse(
+        signed_copy.signed_file_data,
+        content_type=signed_copy.signed_file_content_type or 'application/pdf',
+    )
+    response['Content-Disposition'] = f'inline; filename="{signed_copy.signed_file_name}"'
+    return response
+
+
+@login_required
 @require_POST
 def resolve_correction_item(request, correction_id):
     """Mark a correction item as resolved"""
@@ -1738,5 +1891,28 @@ def delete_correction_item(request, correction_id):
         return redirect('admin_dashboard')
     else:
         return redirect('adviser_dashboard')
+
+
+@login_required
+def serve_uploaded_file(request, document_id):
+    """Serve uploaded document file from binary storage"""
+    document = get_object_or_404(Document, pk=document_id)
+    
+    # Check permission
+    if not (request.user.is_staff or 
+            adviser_profile_for(request.user) or 
+            document.user == request.user or
+            document.organization == organization_profile_for(request.user)):
+        return HttpResponse(status=403)
+    
+    if not document.uploaded_file_data:
+        return HttpResponse(status=404)
+    
+    response = HttpResponse(
+        document.uploaded_file_data,
+        content_type=document.uploaded_file_content_type or 'application/pdf',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{document.uploaded_file_name}"'
+    return response
 
 

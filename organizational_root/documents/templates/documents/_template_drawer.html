@@ -9,7 +9,7 @@
                 {% if group.templates %}
                     <div class="template-drawer-files">
                         {% for template in group.templates %}
-                            <a class="file-link" href="{{ template.template_file.url }}" download>{{ template.filename }}</a>
+                            <a class="file-link" href="{% url 'serve_template_file' template.id %}" download>{{ template.filename }}</a>
                         {% endfor %}
                     </div>
                 {% else %}

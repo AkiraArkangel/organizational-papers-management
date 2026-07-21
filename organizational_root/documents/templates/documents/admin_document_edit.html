@@ -37,10 +37,10 @@
                         <span>Submitted file</span>
                         <strong>{{ document.uploaded_filename }}</strong>
                     </div>
-                    {% if document.uploaded_file %}
+                    {% if document.uploaded_file_data %}
                         <div class="document-review-actions">
                             <a class="btn" href="{% url 'admin_view_document' document.id %}" target="_blank" rel="noopener">Open PDF</a>
-                            <a class="btn" href="{% url 'admin_download_document' document.id %}">Download PDF as DOCX</a>
+                            <a class="btn" href="{% url 'admin_download_document' document.id %}">Download PDF</a>
                             {% if admin_rank == 'RANK_2' and document.is_forwardable_to_rank1 %}
                                 <form method="POST" action="{% url 'rank2_forward_document' document.id %}" class="action-form">
                                     {% csrf_token %}

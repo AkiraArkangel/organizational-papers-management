@@ -42,4 +42,10 @@ urlpatterns = [
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('notifications/clear-all/', views.clear_all_notifications, name='clear_all_notifications'),
+    # Binary file serving endpoints
+    path('files/organization/<int:organization_id>/logo/', views.serve_organization_logo, name='serve_organization_logo'),
+    path('files/officer/<int:officer_id>/photo/', views.serve_officer_photo, name='serve_officer_photo'),
+    path('files/template/<int:template_id>/', views.serve_template_file, name='serve_template_file'),
+    path('files/signed-copy/<int:signed_copy_id>/', views.serve_signed_copy, name='serve_signed_copy'),
+    path('files/document/<int:document_id>/', views.serve_uploaded_file, name='serve_uploaded_file'),
 ]
