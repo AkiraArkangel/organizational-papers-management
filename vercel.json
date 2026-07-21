@@ -11,6 +11,6 @@
       "dest": "organizational_root/wsgi.py"
     }
   ],
-  "installCommand": "uv pip install -r requirements.txt",
+  "installCommand": "uv pip install --system -r requirements.txt",
   "buildCommand": "cd organizational_root && python manage.py migrate --noinput"
 }
